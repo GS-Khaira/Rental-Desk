@@ -103,7 +103,7 @@ function UnitSheet({ u }: { u: Unit }) {
       {isOpen(u) && (
         <div className="sec">
           <div className="row between"><h3>Renters who fit</h3><span className="muted small">{plural(mx.length, "match", "matches")}</span></div>
-          {mx.length ? mx.slice(0, 10).map((m) => (
+          {mx.length ? mx.slice(0, s.settings.topCount).map((m) => (
             <div className="mrow" key={m.r.id}>
               <ScoreBadge s={m.score} />
               <div style={{ minWidth: 0 }}>
@@ -165,7 +165,7 @@ function RenterSheet({ r }: { r: Renter }) {
       {r.status === "Looking" && (
         <div className="sec">
           <div className="row between"><h3>Units that fit</h3><span className="muted small">{plural(mx.length, "match", "matches")}</span></div>
-          {mx.length ? mx.slice(0, 10).map((m) => (
+          {mx.length ? mx.slice(0, s.settings.topCount).map((m) => (
             <div className="mrow" key={m.u.id}>
               <ScoreBadge s={m.score} />
               <div style={{ minWidth: 0 }}>

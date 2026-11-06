@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { match, type MatchResult } from "./match";
+import { DEFAULT_SETTINGS, match, normalizeSettings, type MatchResult, type MatchSettings } from "./match";
 import { TABLES, type Data, type Property, type Renter, type TableName, type Tables, type Tenancy, type Unit } from "./types";
 
 const empty = (): Data => ({ owners: [], properties: [], units: [], renters: [], tenancies: [], maintenance: [] });
@@ -44,10 +44,14 @@ interface Store {
   setDetail: (d: Detail) => void;
   toast: (msg: string) => void;
   toastMsg: string | null;
+  settings: MatchSettings;
+  /** False when the match_settings table hasn't been created yet (migration 0002 not run). */
+  settingsSavable: boolean;
+  saveSettings: (s: MatchSettings) => Promise<void>;
   // lookups
   propOf: (u?: Unit | null) => Property | undefined;
   unitName: (u?: Unit | null) => string;
-  matchUR: (u: Unit, r: Renter) => MatchResult;
+  matchUR: (u: Unit, r: Renter, s?: MatchSettings) => MatchResult;
   matchesForRenter: (r: Renter) => (MatchResult & { u: Unit })[];
   matchesForUnit: (u: Unit) => (MatchResult & { r: Renter })[];
   tenanciesOfRenter: (id: string) => Tenancy[];
@@ -71,6 +75,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [settings, setSettings] = useState<MatchSettings>(DEFAULT_SETTINGS);
+  const [settingsSavable, setSettingsSavable] = useState(true);
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -92,6 +98,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       TABLES.forEach((t, i) => { (next[t] as unknown[]) = results[i]; });
       setData(next);
       setLoadError(null);
+      const { data: row, error } = await supabase().from("match_settings").select("settings").maybeSingle();
+      if (error) setSettingsSavable(false); // table missing: use defaults, saving disabled
+      else { setSettingsSavable(true); setSettings(normalizeSettings(row?.settings ?? null)); }
     } catch {
       setLoadError("Couldn't load your records. Check your connection, then reload.");
     } finally {
@@ -101,7 +110,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const userId = session?.user.id;
   useEffect(() => {
-    if (!userId) { setData(empty()); return; }
+    if (!userId) { setData(empty()); setSettings(DEFAULT_SETTINGS); return; }
     reload();
     const onFocus = () => reload();
     window.addEventListener("focus", onFocus);
@@ -136,6 +145,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await reload(); // cascades (e.g. units → maintenance) change other tables
   }, [reload, toast]);
 
+  const saveSettings = useCallback(async (next: MatchSettings) => {
+    const clean = normalizeSettings(next);
+    const { error } = await supabase().from("match_settings").upsert({ settings: clean }, { onConflict: "user_id" });
+    if (error) {
+      toast("Couldn't save the settings. Check your connection and try again.");
+      throw error;
+    }
+    setSettings(clean);
+  }, [toast]);
+
   const lookups = useMemo(() => {
     const propById = new Map(data.properties.map((p) => [p.id, p]));
     const propOf = (u?: Unit | null) => (u ? propById.get(u.property_id) : undefined);
@@ -144,21 +163,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const p = propOf(u);
       return (p ? p.address : "Unknown property") + (u.label ? " · " + u.label : "");
     };
-    const matchUR = (u: Unit, r: Renter) => match({ ...u, area: propOf(u)?.area ?? null }, r);
+    const matchUR = (u: Unit, r: Renter, s: MatchSettings = settings) => match({ ...u, area: propOf(u)?.area ?? null }, r, s);
     const matchesForRenter = (r: Renter) =>
-      data.units.filter(isOpen).map((u) => ({ u, ...matchUR(u, r) })).filter((m) => !m.blocked).sort((a, b) => b.score - a.score);
+      data.units.filter(isOpen).map((u) => ({ u, ...matchUR(u, r) })).filter((m) => !m.blocked && m.score >= settings.minScore).sort((a, b) => b.score - a.score);
     const matchesForUnit = (u: Unit) =>
-      data.renters.filter((r) => r.status === "Looking").map((r) => ({ r, ...matchUR(u, r) })).filter((m) => !m.blocked).sort((a, b) => b.score - a.score);
+      data.renters.filter((r) => r.status === "Looking").map((r) => ({ r, ...matchUR(u, r) })).filter((m) => !m.blocked && m.score >= settings.minScore).sort((a, b) => b.score - a.score);
     const byMoveInDesc = (a: Tenancy, b: Tenancy) => (b.move_in || "").localeCompare(a.move_in || "");
     const tenanciesOfRenter = (id: string) => data.tenancies.filter((t) => t.renter_id === id).sort(byMoveInDesc);
     const tenanciesOfUnit = (id: string) => data.tenancies.filter((t) => t.unit_id === id).sort(byMoveInDesc);
     const activeTenancy = (unitId: string) => data.tenancies.find((t) => t.unit_id === unitId && !t.move_out);
     return { propOf, unitName, matchUR, matchesForRenter, matchesForUnit, tenanciesOfRenter, tenanciesOfUnit, activeTenancy };
-  }, [data]);
+  }, [data, settings]);
 
   const value: Store = {
     session, authReady, data, loading, loadError, reload, save, remove,
-    detail, setDetail, toast, toastMsg, ...lookups,
+    detail, setDetail, toast, toastMsg, settings, settingsSavable, saveSettings, ...lookups,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

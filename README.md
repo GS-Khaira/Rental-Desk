@@ -9,8 +9,8 @@ renter ↔ unit matching, tenancy history and maintenance logs.
 
 | Path | What it is |
 |---|---|
-| `supabase/migrations/0001_initial_schema.sql` | Database tables and Row Level Security. Run once in Supabase's SQL Editor. |
-| `src/lib/match.ts` | Matching rules and scoring (budget 35, bedrooms 25, area 20, pets 10, parking 5, move-in 5). |
+| `supabase/migrations/` | Database changes, run once each, in order, in Supabase's SQL Editor. |
+| `src/lib/match.ts` | Matching rules and scoring. Defaults: budget 35, bedrooms 25, area 20, pets 10, parking 5, move-in 5. Adjustable on the Matching tab. |
 | `src/lib/store.tsx` | Loads and saves records through Supabase. |
 | `src/components/` | Screens: Today, Units, Renters, Owners, detail panels and forms. |
 | `tests/` | Tests for the matching rules (`npm test`). |

@@ -8,10 +8,11 @@ import { FormProvider } from "./FormModal";
 import { useActions } from "./actions";
 import { DetailSheet } from "./Sheets";
 import { Owners, Renters, Today, Units } from "./Views";
+import { MatchSettingsView } from "./MatchSettingsView";
 
-const VIEWS = ["home", "units", "renters", "owners"] as const;
+const VIEWS = ["home", "units", "renters", "owners", "matching"] as const;
 type View = (typeof VIEWS)[number];
-const TAB_LABEL: Record<View, string> = { home: "Today", units: "Units", renters: "Renters", owners: "Owners" };
+const TAB_LABEL: Record<View, string> = { home: "Today", units: "Units", renters: "Renters", owners: "Owners", matching: "Matching" };
 
 export default function App() {
   if (!supabaseConfigured) return <NotConfigured />;
@@ -167,6 +168,7 @@ function Desk() {
             {view === "units" && <Units />}
             {view === "renters" && <Renters />}
             {view === "owners" && <Owners />}
+            {view === "matching" && <MatchSettingsView />}
           </>
         )}
         <div className="row footer">

@@ -94,10 +94,13 @@ export function Today({ go }: { go: (v: string) => void }) {
 /* ---------------- Units ---------------- */
 function TopRenters({ u }: { u: Unit }) {
   const s = useStore();
-  const mx = s.matchesForUnit(u).slice(0, 10);
+  const mx = s.matchesForUnit(u).slice(0, s.settings.topCount);
   return (
     <div className="toplist">
-      <div className="label">{mx.length ? `Top ${plural(mx.length, "renter")} by score` : "Top renters"}</div>
+      <div className="row between">
+        <div className="label">{mx.length ? `Top ${plural(mx.length, "renter")} by score` : "Top renters"}</div>
+        <a className="small" href="#matching" onClick={(e) => e.stopPropagation()}>Change rules</a>
+      </div>
       {mx.length ? (
         <ol>
           {mx.map((m, i) => (
