@@ -8,7 +8,8 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DDA Rental Desk",
+  title: "Kueppers Property Services",
+  applicationName: "Kueppers Property Services",
   description: "Track owners, units and renters in PEI, and match renters to open units.",
   robots: { index: false, follow: false },
 };

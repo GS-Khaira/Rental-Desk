@@ -10,6 +10,16 @@ import { DetailSheet } from "./Sheets";
 import { Owners, Renters, Today, Units } from "./Views";
 import { MatchSettingsView } from "./MatchSettingsView";
 
+/** Company logo. The image is black on transparent; dark mode turns it white (see .brandlogo in globals.css). */
+function Brand({ size = "header" }: { size?: "header" | "large" }) {
+  return (
+    <a href="#home" className={`brand brand-${size}`} aria-label="Kueppers Property Services, home">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="brandlogo" src="/brand/kueppers-logo.png" alt="Kueppers Property Services" width={1770} height={383} />
+    </a>
+  );
+}
+
 const VIEWS = ["home", "units", "renters", "owners", "matching"] as const;
 type View = (typeof VIEWS)[number];
 const TAB_LABEL: Record<View, string> = { home: "Today", units: "Units", renters: "Renters", owners: "Owners", matching: "Matching" };
@@ -66,7 +76,7 @@ function Login() {
   return (
     <main className="wrap center">
       <form className="panel login" onSubmit={signIn} noValidate>
-        <div className="brand"><b>DDA Rental Desk</b><span>PEI</span></div>
+        <Brand size="large" />
         <h1 style={{ marginTop: 18 }}>Sign in</h1>
         <label className="fld"><span>Email</span><input id="login-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label className="fld"><span>Password</span><input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
@@ -151,7 +161,7 @@ function Desk() {
     <>
       <header className="top">
         <div className="wrap topin">
-          <div className="brand"><b>DDA Rental Desk</b><span>PEI</span></div>
+          <Brand />
           <nav className="tabs">
             {VIEWS.map((v) => <a key={v} href={"#" + v} aria-current={view === v ? "page" : undefined}>{TAB_LABEL[v]}</a>)}
           </nav>
@@ -172,7 +182,7 @@ function Desk() {
           </>
         )}
         <div className="row footer">
-          <button className="btn small" type="button" onClick={() => download(`dda-rental-desk-backup-${today()}.json`, JSON.stringify(s.data, null, 2), "application/json")}>Back up all records</button>
+          <button className="btn small" type="button" onClick={() => download(`kueppers-backup-${today()}.json`, JSON.stringify(s.data, null, 2), "application/json")}>Back up all records</button>
           <button className="btn small" type="button" onClick={() => download(`renters-${today()}.csv`, toCsv(s.data.renters as unknown as Record<string, unknown>[]), "text/csv")}>Renters to Excel (CSV)</button>
           <button className="btn small" type="button" onClick={() => download(`units-${today()}.csv`, toCsv(s.data.units.map((u) => ({ address: s.unitName(u), area: s.propOf(u)?.area, ...u })) as unknown as Record<string, unknown>[]), "text/csv")}>Units to Excel (CSV)</button>
           <button className="btn small" type="button" onClick={() => supabase().auth.signOut()}>Sign out</button>
