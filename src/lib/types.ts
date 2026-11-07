@@ -59,6 +59,9 @@ export interface Renter extends Row {
   status: RenterStatus;
   consent: boolean;
   consent_date: string | null;
+  /** Added by migration 0004. Missing (undefined) until that update is run. */
+  income_verified?: boolean;
+  income_verified_date?: string | null;
   notes: string | null;
 }
 

@@ -91,6 +91,8 @@ interface Store {
   settings: MatchSettings;
   /** False when the match_settings table hasn't been created yet (migration 0002 not run). */
   settingsSavable: boolean;
+  /** False until migration 0004 adds the renters' "income verified" columns. */
+  incomeReady: boolean;
   saveSettings: (s: MatchSettings) => Promise<void>;
   // lookups
   propOf: (u?: Unit | null) => Property | undefined;
@@ -126,6 +128,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [settings, setSettings] = useState<MatchSettings>(DEFAULT_SETTINGS);
   const [settingsSavable, setSettingsSavable] = useState(true);
+  const [incomeReady, setIncomeReady] = useState(false);
   const [userDraft, setUserDraft] = useState<UserDraft | null>(null);
 
   const toast = useCallback((msg: string) => {
@@ -185,6 +188,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { data: row, error } = await supabase().from("match_settings").select("settings").maybeSingle();
       if (error) setSettingsSavable(false); // table missing: use defaults, saving disabled
       else { setSettingsSavable(true); setSettings(normalizeSettings(row?.settings ?? null)); }
+      // Does the renters table have the "income verified" columns yet (migration 0004)?
+      const probe = await supabase().from("renters").select("income_verified").limit(1);
+      setIncomeReady(!probe.error);
     } catch {
       setLoadError("Couldn't load your records. Check your connection, then reload.");
     } finally {
@@ -294,7 +300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     data, allData, scope, setScope, profiles, ...people, reloadProfiles, userDraft, setUserDraft,
     requests, reloadRequests,
     loading, loadError, reload, save, remove,
-    detail, setDetail, toast, toastMsg, settings, settingsSavable, saveSettings, ...lookups,
+    detail, setDetail, toast, toastMsg, settings, settingsSavable, saveSettings, incomeReady, ...lookups,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

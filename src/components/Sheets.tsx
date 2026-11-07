@@ -161,7 +161,9 @@ function RenterSheet({ r }: { r: Renter }) {
         <KV rows={[
           ["Budget", money(r.budget) + "/mo"], ["Bedrooms", r.beds], ["Move-in", r.move_in ? fmtDate(r.move_in) : null],
           ["Areas", r.areas.join(", ") || "Any"], ["Pets", r.pets ? "Has pets" : "No pets"], ["Parking", r.parking ? "Needs parking" : "Not needed"],
-          ["Source", r.source], ["Consent", r.consent ? `Given ${fmtDate(r.consent_date)}` : "Not recorded"], ["Notes", r.notes],
+          ["Source", r.source], ["Consent", r.consent ? `Given ${fmtDate(r.consent_date)}` : "Not recorded"],
+          ["Income", s.incomeReady ? (r.income_verified ? `Verified ${fmtDate(r.income_verified_date)}` : "Not verified") : null],
+          ["Notes", r.notes],
         ]} />
       </div>
       {r.status === "Looking" && (

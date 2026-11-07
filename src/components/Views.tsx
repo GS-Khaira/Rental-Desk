@@ -219,10 +219,11 @@ export function Renters() {
   const s = useStore();
   const a = useActions();
   const { data } = s;
-  const [f, setF] = useState({ q: "", status: "Looking", area: "" });
+  const [f, setF] = useState({ q: "", status: "Looking", area: "", income: "" });
   let list = [...data.renters];
   if (f.status) list = list.filter((r) => r.status === f.status);
   if (f.area) list = list.filter((r) => r.areas.includes(f.area));
+  if (f.income) list = list.filter((r) => Boolean(r.income_verified) === (f.income === "yes"));
   if (f.q) { const q = f.q.toLowerCase(); list = list.filter((r) => [r.name, r.phone, r.email, r.notes].join(" ").toLowerCase().includes(q)); }
   list.sort((x, y) => (x.move_in || "9999").localeCompare(y.move_in || "9999"));
 
@@ -240,6 +241,11 @@ export function Renters() {
         <select aria-label="Preferred area" value={f.area} onChange={(e) => setF({ ...f, area: e.target.value })}>
           <option value="">Any preferred area</option>{AREAS.map((x) => <option key={x}>{x}</option>)}
         </select>
+        {s.incomeReady && (
+          <select aria-label="Income" value={f.income} onChange={(e) => setF({ ...f, income: e.target.value })}>
+            <option value="">Any income status</option><option value="yes">Income verified</option><option value="no">Income not verified</option>
+          </select>
+        )}
       </div>
       {list.length ? (
         <div className="list">
@@ -260,6 +266,7 @@ export function Renters() {
                 <div className="row">
                   {mc !== null && <Pill tone={mc ? "ok" : "off"}>{plural(mc, "matching unit")}</Pill>}
                   {renterHistoryPill(s, r)}
+                  {r.income_verified && <Pill tone="ok">Income verified</Pill>}
                   {!r.consent && <Pill tone="warn">No consent recorded</Pill>}
                 </div>
               </button>

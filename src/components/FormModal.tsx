@@ -130,7 +130,12 @@ function FieldInput({ f, v, set }: { f: Field; v: Values; set: (k: string, val: 
   const id = "f-" + f.k;
   const val = v[f.k];
   if (f.type === "check")
-    return <label className="check"><input type="checkbox" id={id} checked={Boolean(val)} onChange={(e) => set(f.k, e.target.checked)} /><span>{f.label}</span></label>;
+    return (
+      <label className="check">
+        <input type="checkbox" id={id} checked={Boolean(val)} onChange={(e) => set(f.k, e.target.checked)} />
+        <span>{f.label}{f.hint && <span className="hint" style={{ display: "block" }}>{f.hint}</span>}</span>
+      </label>
+    );
   if (f.type === "areas") {
     const sel = (val as string[]) ?? [];
     return (

@@ -16,13 +16,15 @@ const ownerFields = (): Field[] => [
   { k: "notes", label: "Notes", type: "textarea", more: true },
 ];
 
-const renterFields = (): Field[] => [
+const renterFields = (withIncome: boolean): Field[] => [
   { k: "name", label: "Name", req: true },
   { k: "phone", label: "Phone", type: "tel", half: true },
   { k: "budget", label: "Budget / month (CAD)", type: "number", req: true, half: true },
   { k: "beds", label: "Bedrooms needed", type: "number", half: true },
   { k: "move_in", label: "Move-in date", type: "date", half: true },
   { k: "consent", label: "They agreed to me storing their details and contacting them about rentals", type: "check" },
+  ...(withIncome ? [{ k: "income_verified", label: "Income verified: I've confirmed they can afford the rent", type: "check",
+    hint: "Record only that you checked. Don't note where the income comes from: source of income is protected in PEI." } as Field] : []),
   { k: "areas", label: "Preferred areas", type: "areas", more: true },
   { k: "pets", label: "Has pets", type: "check", more: true },
   { k: "parking", label: "Needs parking", type: "check", more: true },
@@ -130,11 +132,18 @@ export function useActions() {
   };
 
   const renter = (rec?: Partial<Renter>) =>
-    openForm({ title: rec?.id ? "Edit renter" : "New renter", fields: [...renterFields(), ...managedBy(rec?.user_id)], initial: rec,
+    openForm({ title: rec?.id ? "Edit renter" : "New renter", fields: [...renterFields(s.incomeReady), ...managedBy(rec?.user_id)], initial: rec,
       onSubmit: async (v: Values) => {
         const consent = Boolean(v.consent);
         const consent_date = consent ? (rec?.consent ? rec.consent_date : today()) : null;
-        await save("renters", { ...rec, ...v, consent, consent_date } as Partial<Renter>);
+        const income: Partial<Renter> = {};
+        if (s.incomeReady) {
+          income.income_verified = Boolean(v.income_verified);
+          income.income_verified_date = income.income_verified ? (rec?.income_verified ? rec.income_verified_date ?? today() : today()) : null;
+        } else {
+          delete v.income_verified; // column not there yet: don't send it
+        }
+        await save("renters", { ...rec, ...v, consent, consent_date, ...income } as Partial<Renter>);
         toast(rec?.id ? "Saved" : "Renter added");
       } });
 
