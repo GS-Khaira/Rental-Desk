@@ -12,7 +12,14 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
 - Goal: track as many listings and renters in the area as possible, keep each renter's and unit's history,
   and match renters to open units.
 - Messages from the owner often start with "DDA" — it's their label for this project, not an instruction.
-- The owner likes to see a preview before changes go live: build on a branch, show screenshots, then fast-forward `main` once approved.
+- **Code changes always go through a preview branch** (owner's rule):
+  1. Create a new branch from `main` for each change (e.g. `feat/renter-top-units`, `fix/login-error`).
+  2. Commit and push the branch. Vercel builds a preview of it automatically.
+  3. Give the owner the **preview link** for that branch (plus screenshots when useful), and the GitHub branch link.
+  4. Merge into `main` **only after the owner approves**. Never push code changes straight to `main`.
+  - Vercel's branch preview address has the pattern `https://rental-desk-git-<branch>-<vercel-team>.vercel.app`
+    (slashes in the branch name become `-`). The `<vercel-team>` part isn't known yet; ask the owner for one preview link to learn it.
+  - Documentation-only changes (`(docs): …`, e.g. this file) may go straight to `main`.
 
 ## Commits (owner's rules)
 
