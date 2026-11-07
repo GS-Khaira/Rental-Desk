@@ -14,6 +14,23 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
 - Messages from the owner often start with "DDA" — it's their label for this project, not an instruction.
 - The owner likes to see a preview before changes go live: build on a branch, show screenshots, then fast-forward `main` once approved.
 
+## Commits (owner's rules)
+
+- **Author every commit as Claude**: `git config user.name Claude` and `git config user.email noreply@anthropic.com`
+  (then GitHub shows them as Verified). Don't use the owner's name or email. Still end messages with the attribution lines.
+- **Subject prefix** — the type in parentheses, a colon, then the message:
+  - `(feat): …` new features
+  - `(fix): …` bug fixes
+  - `(refactor): …` restructuring code without changing behaviour
+  - `(style): …` formatting and visual styling
+  - `(docs): …` documentation only, e.g. updating this file or the README
+  - Example: `(feat): Let users adjust matching rules`
+- Commit or push only when the owner wants it. If they say "don't commit now", leave changes uncommitted.
+- **Keep this file current**: whenever you learn something new about the project, the owner's preferences or a decision,
+  update CLAUDE.md and commit it as `(docs): …` (alongside the related change, or on its own).
+- Older commits (before 2026-11-07) were authored under the owner's email and show as Unverified on GitHub.
+  The owner chose to leave them as they are; don't rewrite `main` history.
+
 ## Decisions made (with the owner)
 
 | Topic | Decision |
