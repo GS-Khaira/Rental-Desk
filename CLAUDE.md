@@ -42,7 +42,11 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
 
 | Topic | Decision |
 |---|---|
-| Users (v1) | Only the owner. Each Supabase Auth user sees only their own rows (RLS on `user_id = auth.uid()`). A team/shared model was offered but **not yet decided**. |
+| Roles | **Admin** (sees everything, manages users), **Property manager** (only their own owners/properties/units/renters/tenancies/maintenance/requests, by `user_id`), **Tenant** (only their current home via `tenant_home()` and their own requests). Enforced by RLS in `supabase/migrations/0003_roles_and_requests.sql` via `my_role()`, `is_admin()`, `can_access(user_id)`. Role descriptions live in one place: `src/lib/roles.ts` (`ROLE_INFO`). |
+| Users page | Admins only (`#users`, `src/components/UsersView.tsx`). Add user → role cards, name, email, phone; tenants must be linked to a renter record (`profiles.renter_id`). New users get a **temporary password** shown once (copyable message); they must choose their own at first sign-in (`must_change_password`). Admin can change role/details, make a new temporary password, switch access off/on (ban + `profiles.active`). **No hard delete** (records would cascade). Can't demote/deactivate yourself; DB trigger keeps at least one active admin. |
+| User admin server | `src/app/api/admin/users` (GET list, POST create) and `.../[id]` (PATCH: update, reset_password, deactivate, reactivate). Server-only helper `src/lib/server/admin.ts` uses **`SUPABASE_SECRET_KEY`** (Vercel env var, never `NEXT_PUBLIC_`, never in chat) and checks the caller's token is an active admin. Browser calls go through `src/lib/adminApi.ts`. Reason: Supabase's free email can't send invites to outsiders, so temporary passwords are used instead of invite emails. |
+| Admin view | Header "Viewing" selector (everyone / one manager) narrows every screen (`store.scope`). Cards show "Managed by". Owner and renter forms have "Managed by" for admins; changing an owner's manager calls `reassign_owner()` which moves its properties, units, tenancies, maintenance and requests too. New child rows inherit the parent's manager (`inherit_manager` trigger). |
+| Tenant requests | Tenants send requests from the portal (`create_tenant_request()` picks the manager and unit from their current tenancy). Categories: Maintenance, Rent or payment, Lease, Other. Status: Open → In progress → Resolved (staff only; a tenant reply reopens a resolved request). Threads in `request_messages`. Staff see them on the **Requests** tab (badge = open count) and a banner on Today. Tenant portal: `src/components/TenantPortal.tsx`; requests UI: `src/components/Requests.tsx`. |
 | Branding | Business name **Kueppers Property Services**. Logo: `public/brand/kueppers-logo.png` (black on transparent, made from the owner's JPG; CSS inverts it to white in dark mode). App icons: `src/app/icon.png`, `src/app/apple-icon.png`. Tab title "Kueppers Property Services". "DDA" is still the owner's chat label, not the app name. |
 | Location | PEI. CAD, `en-CA` dates, postal codes start with C. Area dropdown in `src/lib/constants.ts` (Charlottetown split into neighbourhoods; owner hasn't objected). |
 | Listings | Only units the owner manages for landlords (not outside Kijiji/Facebook ads). Structure: Owner → Property → Unit → Tenancy; Renters separate. |
@@ -56,11 +60,11 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
 
 ## Stack and where things live
 
-- **Code**: https://github.com/GS-Khaira/Rental-Desk (branch `main`). Next.js 16 (App Router, see AGENTS.md) + TypeScript, single client page with hash routes (`#home`, `#units`, `#renters`, `#owners`).
+- **Code**: https://github.com/GS-Khaira/Rental-Desk (branch `main`). Next.js 16 (App Router, see AGENTS.md) + TypeScript, single client page with hash routes (`#home`, `#units`, `#renters`, `#owners`, `#requests`, `#matching`, `#users`); tenants get the portal instead. `src/components/App.tsx` `Gate` decides by account state and role.
 - **Database + login**: Supabase project `rental-desk`, URL `https://eqobpekulvvfsfddenhb.supabase.co` (not secret).
-  Schema: `supabase/migrations/0001_initial_schema.sql` (run). `0002_match_settings.sql` (**owner must run it**; until then the app uses defaults and the Save button is disabled with a notice). New schema changes go in a new numbered migration file that the owner runs in the SQL Editor.
+  Schema: `supabase/migrations/0001_initial_schema.sql` (run). `0002_match_settings.sql` (**owner must run it**; until then the app uses defaults and the Save button is disabled with a notice). `0003_roles_and_requests.sql` (**owner must run it**; makes every existing account an admin; until then the app runs in "legacy" mode as a single admin and the Users/Requests screens show a notice). New schema changes go in a new numbered migration file that the owner runs in the SQL Editor.
 - **Hosting**: Vercel, https://rental-desk-urhh.vercel.app, deploys automatically on every push to `main`.
-  Env vars set in Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+  Env vars set in Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Needed for the Users page: `SUPABASE_SECRET_KEY` (server-only; owner adds it in Vercel, Production + Preview).
 - **Prototype** (earlier, superseded): claude.ai artifact https://claude.ai/artifact/9v14JtWiTeuJrwEdF2PX2b with example data.
 - Never put the `sb_secret_` key or the database password in code, chat, or this file.
 
@@ -73,6 +77,12 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
 | `src/components/Sheets.tsx` | Detail panels for unit, renter, owner |
 | `src/components/App.tsx` | Shell, sign-in, password reset, backups/CSV export |
 | `src/components/MatchSettingsView.tsx` | Matching settings page |
+| `src/components/UsersView.tsx` | Users & access page (admins) |
+| `src/components/Requests.tsx` | Requests tab, request detail, shared message thread |
+| `src/components/TenantPortal.tsx` | Tenant's home, manager contact, requests |
+| `src/lib/roles.ts` | Role names/descriptions, request categories/statuses |
+| `src/lib/server/admin.ts`, `src/app/api/admin/users/**` | Server-side user management (secret key) |
+| `src/lib/adminApi.ts` | Browser client for those routes |
 
 Checks before pushing: `npm test`, `npx tsc --noEmit`, `npm run lint`, and a build with dummy env vars:
 `NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=x npm run build`.
@@ -85,11 +95,13 @@ The cloud session's network blocks vercel.app and supabase.co, so the owner test
 - [x] Vercel deployed
 - [ ] Supabase Auth → URL Configuration: Site URL + redirect `https://rental-desk-urhh.vercel.app/**` (asked, not confirmed)
 - [ ] Run migration `0002_match_settings.sql` in the Supabase SQL Editor
+- [ ] Run migration `0003_roles_and_requests.sql` (after 0002)
+- [ ] Add `SUPABASE_SECRET_KEY` in Vercel (Production + Preview) and redeploy
 - [ ] Owner's live test checklist (sign in, add owner/property/unit/renter, match, move-in, reload) — not yet reported
 
 ## Backlog / ideas offered to the owner
 
-- Decide: separate users (current) vs shared team with roles (Admin / Agent).
+- Supabase's built-in email only reaches project team members: "Forgot password" emails won't reach managers/tenants until custom SMTP is set up. Admins use "Make a new temporary password" instead. Custom SMTP (e.g. Resend) is a possible later step.
 - Public "Looking for a rental?" form so renters sign themselves up (with consent) — recommended next feature.
 - Same top-10 list on Renters page (top units per renter) — offered, no answer yet.
 - Photos for units, map view, email/text alerts for new matches, spreadsheet import.
