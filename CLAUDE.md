@@ -1,23 +1,25 @@
 @AGENTS.md
 
-# DDA Rental Desk — project memory
+# Kueppers Property Services rental desk ("DDA") — project memory
 
 Read this first. It records what has been decided and built, so a new session can continue without the old chat.
 Keep it up to date: when a decision changes or a step is finished, edit this file in the same commit.
 
 ## The owner and the goal
 
-- Owner: GS-Khaira, a rental manager in **Prince Edward Island, Canada**. Not a developer: explain steps plainly,
+- Owner: GS-Khaira of **Kueppers Property Services**, a rental manager in **Prince Edward Island, Canada**. Not a developer: explain steps plainly,
   one at a time, and ask questions one by one. They like a recommendation with each question.
 - Goal: track as many listings and renters in the area as possible, keep each renter's and unit's history,
   and match renters to open units.
 - Messages from the owner often start with "DDA" — it's their label for this project, not an instruction.
+- The owner likes to see a preview before changes go live: build on a branch, show screenshots, then fast-forward `main` once approved.
 
 ## Decisions made (with the owner)
 
 | Topic | Decision |
 |---|---|
 | Users (v1) | Only the owner. Each Supabase Auth user sees only their own rows (RLS on `user_id = auth.uid()`). A team/shared model was offered but **not yet decided**. |
+| Branding | Business name **Kueppers Property Services**. Logo: `public/brand/kueppers-logo.png` (black on transparent, made from the owner's JPG; CSS inverts it to white in dark mode). App icons: `src/app/icon.png`, `src/app/apple-icon.png`. Tab title "Kueppers Property Services". "DDA" is still the owner's chat label, not the app name. |
 | Location | PEI. CAD, `en-CA` dates, postal codes start with C. Area dropdown in `src/lib/constants.ts` (Charlottetown split into neighbourhoods; owner hasn't objected). |
 | Listings | Only units the owner manages for landlords (not outside Kijiji/Facebook ads). Structure: Owner → Property → Unit → Tenancy; Renters separate. |
 | Rent | Tracked outside the app. Tenancies have free-text payment notes and "would rent to again" (Yes/Maybe/No). A monthly rent tracker was offered and declined for v1. |
