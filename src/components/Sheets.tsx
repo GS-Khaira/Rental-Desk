@@ -7,6 +7,7 @@ import type { Owner, Renter, Tenancy, Unit } from "@/lib/types";
 import { useActions } from "./actions";
 import { Chips, ConfirmButton, Empty, KV, Linkish, Pill, RentAgainPill, ScoreBadge, StatusPill } from "./ui";
 import { renterHistoryPill } from "./Views";
+import { RequestSheet } from "./Requests";
 
 export function DetailSheet() {
   const s = useStore();
@@ -23,6 +24,7 @@ export function DetailSheet() {
   if (detail.type === "unit") { const u = data.units.find((x) => x.id === detail.id); if (u) body = <UnitSheet u={u} />; }
   if (detail.type === "renter") { const r = data.renters.find((x) => x.id === detail.id); if (r) body = <RenterSheet r={r} />; }
   if (detail.type === "owner") { const o = data.owners.find((x) => x.id === detail.id); if (o) body = <OwnerSheet o={o} />; }
+  if (detail.type === "request") { const r = s.requests.find((x) => x.id === detail.id); if (r) body = <RequestSheet r={r} />; }
   if (!body) return null;
   return (
     <>
@@ -182,6 +184,8 @@ function RenterSheet({ r }: { r: Renter }) {
         {hist.length ? <div className="tl">{hist.map((t) => <div key={t.id} className={`item ${t.move_out ? "ended" : ""}`}><TenancyLine t={t} show="unit" /></div>)}</div>
           : <div className="muted">No tenancies with you yet.</div>}
       </div>
+      {s.isAdmin && s.rolesReady && <PortalAccess r={r} />}
+      {s.isAdmin && s.rolesReady && <div className="sec"><KV rows={[["Managed by", s.personName(r.user_id)]]} /></div>}
       <div className="sec">
         <h3>Their data</h3>
         <p className="muted small" style={{ margin: "6px 0 10px" }}>Under PIPEDA a renter can ask what you hold about them, or ask you to delete it. Deleting also removes their rental history.</p>
@@ -194,6 +198,34 @@ function RenterSheet({ r }: { r: Renter }) {
   );
 }
 
+/** Admins: does this renter have a tenant login? Offer to create one when they're renting now. */
+function PortalAccess({ r }: { r: Renter }) {
+  const s = useStore();
+  const login = s.profiles.find((p) => p.renter_id === r.id);
+  const renting = s.allData.tenancies.some((t) => t.renter_id === r.id && !t.move_out);
+  return (
+    <div className="sec">
+      <div className="row between">
+        <h3>Tenant portal</h3>
+        {login ? <Pill tone={login.active ? "ok" : "no"}>{login.active ? "Has a login" : "Login switched off"}</Pill> : <Pill tone="off">No login</Pill>}
+      </div>
+      {login ? (
+        <p className="muted small" style={{ margin: "6px 0 10px" }}>Signs in as <span className="mono">{login.email}</span>. Manage it on the Users page.</p>
+      ) : (
+        <p className="muted small" style={{ margin: "6px 0 10px" }}>
+          {renting ? "Give them a login so they can see their home details and send you requests." : "They can get a login once they're renting one of your units."}
+        </p>
+      )}
+      {login ? <a className="btn small" href="#users">Open Users</a> : (
+        <button className="btn small primary" type="button" disabled={!renting}
+          onClick={() => { s.setUserDraft({ role: "tenant", renter_id: r.id, full_name: r.name, email: r.email ?? "", phone: r.phone ?? "" }); s.setDetail(null); window.location.hash = "users"; }}>
+          Give portal access
+        </button>
+      )}
+    </div>
+  );
+}
+
 function OwnerSheet({ o }: { o: Owner }) {
   const s = useStore();
   const a = useActions();
@@ -201,6 +233,7 @@ function OwnerSheet({ o }: { o: Owner }) {
   return (
     <>
       <Head title={o.name} sub={<span className="mono">{[o.phone, o.email].filter(Boolean).join(" · ")}</span>} />
+      {s.isAdmin && s.rolesReady && <div className="row" style={{ marginBottom: 10 }}><Pill tone="listed">Managed by {s.personName(o.user_id)}</Pill></div>}
       <div className="row" style={{ marginBottom: 12 }}>
         <button className="btn small" type="button" onClick={() => a.owner(o)}>Edit owner</button>
         <button className="btn small primary" type="button" onClick={() => a.property({ owner_id: o.id })}>+ Property</button>

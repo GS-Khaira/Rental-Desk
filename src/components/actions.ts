@@ -2,6 +2,7 @@
 
 import { useOpenForm, type Field, type Values } from "./FormModal";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { AREAS, CONTACT_PREFS, FEE_TYPES, PROP_TYPES, RENT_AGAIN, RENTER_STATUS, SOURCES, UNIT_STATUS } from "@/lib/constants";
 import { today } from "@/lib/format";
 import type { Maintenance, Owner, Property, Renter, Tenancy, Unit } from "@/lib/types";
@@ -60,9 +61,32 @@ export function useActions() {
     return [p.id, p.address + (o ? ` (${o.name})` : "")] as [string, string];
   });
 
+  // Admins choose which manager a record belongs to. Managers' records are always their own.
+  const canAssign = s.isAdmin && s.rolesReady && s.staffProfiles.length > 0;
+  const me = s.session?.user.id ?? "";
+  const managedBy = (current?: string): Field[] => canAssign ? [{
+    k: "user_id", label: "Managed by", type: "select", req: true,
+    def: current ?? (s.scope !== "all" ? s.scope : me),
+    opts: s.staffProfiles.map((p) => [p.id, (p.id === me ? "You" : p.full_name || p.email || "Unnamed") + (p.role === "admin" ? " (admin)" : "")] as [string, string]),
+    hint: "Only this manager (and admins) will see it.",
+  }] : [];
+
   const owner = (rec?: Partial<Owner>) =>
-    openForm({ title: rec?.id ? "Edit owner" : "New owner", fields: ownerFields(), initial: rec,
-      onSubmit: async (v) => { await save("owners", { ...rec, ...v } as Partial<Owner>); toast(rec?.id ? "Saved" : "Owner added"); } });
+    openForm({ title: rec?.id ? "Edit owner" : "New owner", fields: [...ownerFields(), ...managedBy(rec?.user_id)], initial: rec,
+      onSubmit: async (v) => {
+        const target = v.user_id as string | undefined;
+        if (rec?.id && target && target !== rec.user_id) {
+          // Moving an owner moves their properties, units and history with them.
+          const { error } = await supabase().rpc("reassign_owner", { p_owner: rec.id, p_manager: target });
+          if (error) { toast(error.message || "Couldn't move this owner. Try again."); throw error; }
+          await save("owners", { ...rec, ...v } as Partial<Owner>);
+          await s.reload();
+          toast("Saved and moved to " + s.personName(target));
+          return;
+        }
+        await save("owners", { ...rec, ...v } as Partial<Owner>);
+        toast(rec?.id ? "Saved" : "Owner added");
+      } });
 
   const property = (rec?: Partial<Property>) => {
     if (!data.owners.length) { toast("Add an owner first."); return owner(); }
@@ -106,7 +130,7 @@ export function useActions() {
   };
 
   const renter = (rec?: Partial<Renter>) =>
-    openForm({ title: rec?.id ? "Edit renter" : "New renter", fields: renterFields(), initial: rec,
+    openForm({ title: rec?.id ? "Edit renter" : "New renter", fields: [...renterFields(), ...managedBy(rec?.user_id)], initial: rec,
       onSubmit: async (v: Values) => {
         const consent = Boolean(v.consent);
         const consent_date = consent ? (rec?.consent ? rec.consent_date : today()) : null;

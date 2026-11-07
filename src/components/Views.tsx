@@ -8,6 +8,13 @@ import type { Renter, Unit } from "@/lib/types";
 import { useActions } from "./actions";
 import { Chips, Empty, Linkish, Pill, RentAgainPill, ScoreBadge, ScorePill, StatusPill } from "./ui";
 
+/** Admins viewing everyone's records: show whose record a card is. */
+function ManagedBy({ userId }: { userId?: string }) {
+  const s = useStore();
+  if (!s.isAdmin || !s.rolesReady || s.scope !== "all" || !userId) return null;
+  return <div className="managedby">Managed by {s.personName(userId)}</div>;
+}
+
 /* ---------------- Today ---------------- */
 export function Today({ go }: { go: (v: string) => void }) {
   const s = useStore();
@@ -28,6 +35,7 @@ export function Today({ go }: { go: (v: string) => void }) {
           <h1>Today at the desk</h1>
         </div>
       </div>
+      <OpenRequestsBanner />
       <div className="stats">
         <button className="stat" type="button" onClick={() => go("units")}>
           <div className="label">Units open</div><div className="n num">{open.length}</div>
@@ -88,6 +96,18 @@ export function Today({ go }: { go: (v: string) => void }) {
         </section>
       </div>
     </>
+  );
+}
+
+function OpenRequestsBanner() {
+  const s = useStore();
+  const open = s.requests.filter((r) => r.status === "Open" && (!s.isAdmin || s.scope === "all" || r.user_id === s.scope));
+  if (!open.length) return null;
+  return (
+    <div className="banner reqbanner">
+      <span><b>{plural(open.length, "tenant request")} waiting for a reply.</b> Latest: “{open[0].subject}”</span>
+      <a className="btn small primary" href="#requests">View requests</a>
+    </div>
   );
 }
 
@@ -167,6 +187,7 @@ export function Units() {
                 <div className="row between"><StatusPill s={u.status} /><span className="num strong">{money(u.rent)}</span></div>
                 <div className="t">{p?.address ?? "No property"}{u.label && <span className="muted" style={{ fontWeight: 500 }}> · {u.label}</span>}</div>
                 <div className="sub">{p?.area}</div>
+                <ManagedBy userId={u.user_id} />
                 <div className="facts">
                   <span><b>{u.beds}</b> bed</span><span><b>{u.baths ?? "—"}</b> bath</span>
                   {u.pets && <span>Pets OK</span>}{u.parking && <span>Parking</span>}
@@ -228,6 +249,7 @@ export function Renters() {
               <button className="card" type="button" key={r.id} onClick={() => s.setDetail({ type: "renter", id: r.id })}>
                 <div className="row between"><StatusPill s={r.status} /><span className="num strong">{money(r.budget)}</span></div>
                 <div className="t">{r.name}</div>
+                <ManagedBy userId={r.user_id} />
                 <div className="sub mono">{r.phone || r.email || "No contact yet"}</div>
                 <div className="facts">
                   {r.beds ? <span><b>{r.beds}</b> bed</span> : null}
@@ -276,6 +298,7 @@ export function Owners() {
             return (
               <button className="card" type="button" key={o.id} onClick={() => s.setDetail({ type: "owner", id: o.id })}>
                 <div className="t">{o.name}</div>
+                <ManagedBy userId={o.user_id} />
                 <div className="sub mono">{o.phone || o.email}</div>
                 <div className="facts">
                   <span><b>{ps.length}</b> {ps.length === 1 ? "property" : "properties"}</span>

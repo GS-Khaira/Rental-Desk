@@ -9,6 +9,10 @@ import { useActions } from "./actions";
 import { DetailSheet } from "./Sheets";
 import { Owners, Renters, Today, Units } from "./Views";
 import { MatchSettingsView } from "./MatchSettingsView";
+import { RequestsView } from "./Requests";
+import { TenantPortal } from "./TenantPortal";
+import { UsersView } from "./UsersView";
+import { ROLE_INFO } from "@/lib/roles";
 
 /** Company logo. The image is black on transparent; dark mode turns it white (see .brandlogo in globals.css). */
 function Brand({ size = "header" }: { size?: "header" | "large" }) {
@@ -20,9 +24,13 @@ function Brand({ size = "header" }: { size?: "header" | "large" }) {
   );
 }
 
-const VIEWS = ["home", "units", "renters", "owners", "matching"] as const;
+const VIEWS = ["home", "units", "renters", "owners", "requests", "matching", "users"] as const;
 type View = (typeof VIEWS)[number];
-const TAB_LABEL: Record<View, string> = { home: "Today", units: "Units", renters: "Renters", owners: "Owners", matching: "Matching" };
+const TAB_LABEL: Record<View, string> = {
+  home: "Today", units: "Units", renters: "Renters", owners: "Owners", requests: "Requests", matching: "Matching", users: "Users",
+};
+/** Tabs each staff role gets. Tenants don't use tabs: they get the tenant portal. */
+const viewsFor = (isAdmin: boolean): View[] => VIEWS.filter((v) => v !== "users" || isAdmin);
 
 export default function App() {
   if (!supabaseConfigured) return <NotConfigured />;
@@ -47,10 +55,84 @@ function NotConfigured() {
   );
 }
 
+const Loading = () => <main className="wrap"><div className="empty" style={{ marginTop: 40 }}><b>Loading…</b></div></main>;
+
+/** Decides what the signed-in person sees, based on their account and role. */
 function Gate() {
-  const { session, authReady } = useStore();
-  if (!authReady) return <main className="wrap"><div className="empty" style={{ marginTop: 40 }}><b>Loading…</b></div></main>;
-  return session ? <Desk /> : <Login />;
+  const s = useStore();
+  if (!s.authReady) return <Loading />;
+  if (!s.session) return <Login />;
+  if (s.account === "loading") return s.loadError ? <Notice title="Can't reach the app right now" body={s.loadError} /> : <Loading />;
+  if (s.account === "off") return <Notice title="Your access is switched off" body="Please contact Kueppers Property Services if you think this is a mistake." />;
+  if (s.account === "missing") return <Notice title="Your account isn't set up yet" body="An admin needs to give your account a role. Please contact Kueppers Property Services." />;
+  if (s.profile?.must_change_password) return <SetOwnPassword />;
+  if (s.role === "tenant") return <><TenantPortal header={<SimpleHeader />} /><Toast /></>;
+  return <Desk />;
+}
+
+const Toast = () => { const { toastMsg } = useStore(); return toastMsg ? <div className="toast" role="status">{toastMsg}</div> : null; };
+
+function SimpleHeader() {
+  const s = useStore();
+  return (
+    <header className="top">
+      <div className="wrap topin">
+        <Brand />
+        <div className="row">
+          <span className="muted small ellipsis" style={{ maxWidth: 200 }}>{s.profile?.full_name || s.session?.user.email}</span>
+          <button className="btn small" type="button" onClick={() => supabase().auth.signOut()}>Sign out</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Notice({ title, body }: { title: string; body: string }) {
+  return (
+    <main className="wrap center">
+      <div className="panel login">
+        <Brand size="large" />
+        <h1 style={{ marginTop: 12 }}>{title}</h1>
+        <p className="muted" style={{ margin: 0 }}>{body}</p>
+        <button className="btn" type="button" onClick={() => supabase().auth.signOut()} style={{ justifyContent: "center" }}>Sign out</button>
+      </div>
+    </main>
+  );
+}
+
+/** First sign-in with a temporary password: choose your own before going further. */
+function SetOwnPassword() {
+  const s = useStore();
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (pw.length < 8) return setErr("Use at least 8 characters.");
+    if (pw !== pw2) return setErr("The two passwords don't match.");
+    setBusy(true); setErr(null);
+    const { error } = await supabase().auth.updateUser({ password: pw });
+    if (error) { setBusy(false); setErr(/different|same/i.test(error.message) ? "Choose a password different from the temporary one." : error.message); return; }
+    await supabase().rpc("clear_password_flag");
+    await s.reloadProfile();
+    s.toast("Password saved");
+  }
+  return (
+    <main className="wrap center">
+      <form className="panel login" onSubmit={submit} noValidate>
+        <Brand size="large" />
+        <h1 style={{ marginTop: 12 }}>Choose your password</h1>
+        <p className="muted" style={{ margin: 0 }}>You signed in with a temporary password. Pick your own to continue.</p>
+        <label className="fld"><span>New password</span><input id="own-pw" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
+        <label className="fld"><span>Type it again</span><input id="own-pw2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>
+        {err && <div className="err">{err}</div>}
+        <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: "center" }}>{busy ? "Saving…" : "Save and continue"}</button>
+        <button className="linkish small" type="button" onClick={() => supabase().auth.signOut()}>Sign out</button>
+      </form>
+      <Toast />
+    </main>
+  );
 }
 
 function Login() {
@@ -114,6 +196,26 @@ function PasswordReset() {
   );
 }
 
+/** Admins: choose whose records every screen shows. */
+function ScopeBar() {
+  const s = useStore();
+  const label = (id: string) => (id === s.session?.user.id ? "You" : s.personName(id));
+  return (
+    <div className="scopebar">
+      <div className="wrap row" style={{ paddingBlock: 6 }}>
+        <span className={`pill role-admin`}>{ROLE_INFO.admin.label}</span>
+        <label className="row small" htmlFor="scope" style={{ gap: 6 }}>
+          <span className="muted">Viewing</span>
+          <select id="scope" value={s.scope} onChange={(e) => { s.setScope(e.target.value); s.setDetail(null); }}>
+            <option value="all">Everyone&apos;s records</option>
+            {s.staffProfiles.map((p) => <option key={p.id} value={p.id}>{label(p.id)}{p.role === "admin" ? " (admin)" : ""}</option>)}
+          </select>
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function download(filename: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement("a");
@@ -135,11 +237,13 @@ function Desk() {
   const a = useActions();
   const [view, setView] = useState<View>("home");
   const [adding, setAdding] = useState(false);
+  const views = viewsFor(s.isAdmin);
+  const openRequests = s.requests.filter((r) => r.status === "Open" && (!s.isAdmin || s.scope === "all" || r.user_id === s.scope)).length;
 
   useEffect(() => {
     const read = () => {
       const h = window.location.hash.slice(1) as View;
-      setView(VIEWS.includes(h) ? h : "home");
+      setView(viewsFor(s.isAdmin).includes(h) ? h : "home");
       s.setDetail(null);
       window.scrollTo(0, 0);
     };
@@ -147,7 +251,7 @@ function Desk() {
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [s.isAdmin]);
   const go = (v: string) => { window.location.hash = v; };
 
   const addItems: [string, string, () => void][] = [
@@ -163,10 +267,16 @@ function Desk() {
         <div className="wrap topin">
           <Brand />
           <nav className="tabs">
-            {VIEWS.map((v) => <a key={v} href={"#" + v} aria-current={view === v ? "page" : undefined}>{TAB_LABEL[v]}</a>)}
+            {views.map((v) => (
+              <a key={v} href={"#" + v} aria-current={view === v ? "page" : undefined}>
+                {TAB_LABEL[v]}
+                {v === "requests" && openRequests > 0 && <span className="badge" aria-label={`${openRequests} open`}>{openRequests}</span>}
+              </a>
+            ))}
           </nav>
           <div className="row addbar"><button className="btn primary" type="button" onClick={() => setAdding(true)}>+ Add</button></div>
         </div>
+        {s.isAdmin && s.rolesReady && <ScopeBar />}
       </header>
       <main className="wrap" id="main">
         {s.loadError && <div className="banner info"><span>{s.loadError}</span><button className="btn small" type="button" onClick={() => s.reload()}>Try again</button></div>}
@@ -178,7 +288,9 @@ function Desk() {
             {view === "units" && <Units />}
             {view === "renters" && <Renters />}
             {view === "owners" && <Owners />}
+            {view === "requests" && <RequestsView />}
             {view === "matching" && <MatchSettingsView />}
+            {view === "users" && s.isAdmin && <UsersView />}
           </>
         )}
         <div className="row footer">

@@ -95,3 +95,56 @@ export type TableName = keyof Tables;
 export const TABLES: TableName[] = ["owners", "properties", "units", "renters", "tenancies", "maintenance"];
 
 export type Data = { [K in TableName]: Tables[K][] };
+
+/* ---------- roles, users, tenant requests (migration 0003) ---------- */
+export type Role = "admin" | "manager" | "tenant";
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  phone: string | null;
+  role: Role;
+  renter_id: string | null;
+  active: boolean;
+  must_change_password: boolean;
+  created_at?: string;
+}
+
+/** A user as the admin Users page sees them: profile plus sign-in details from Supabase Auth. */
+export interface AdminUser extends Profile {
+  last_sign_in_at: string | null;
+}
+
+export type RequestStatus = "Open" | "In progress" | "Resolved";
+export type RequestCategory = "Maintenance" | "Rent or payment" | "Lease" | "Other";
+
+export interface TenantRequest {
+  id: string;
+  user_id: string;
+  tenant_id: string;
+  renter_id: string | null;
+  unit_id: string | null;
+  category: RequestCategory;
+  subject: string;
+  status: RequestStatus;
+  last_message_at: string;
+  created_at: string;
+}
+
+export interface RequestMessage {
+  id: string;
+  request_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}
+
+/** What tenant_home() returns: only what a tenant may see about their rental. */
+export interface TenantHome {
+  name: string | null;
+  tenancy: { move_in: string; rent: number | null } | null;
+  unit: { label: string | null; beds: number; baths: number | null; utilities: string | null; pets: boolean; parking: boolean } | null;
+  property: { address: string; area: string; postal: string | null } | null;
+  manager: { name: string | null; email: string | null; phone: string | null } | null;
+}
