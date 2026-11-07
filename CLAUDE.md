@@ -99,6 +99,14 @@ The cloud session's network blocks vercel.app and supabase.co, so the owner test
 - [ ] Add `SUPABASE_SECRET_KEY` in Vercel (Production + Preview) and redeploy
 - [ ] Owner's live test checklist (sign in, add owner/property/unit/renter, match, move-in, reload) — not yet reported
 
+## Test data
+
+- `supabase/test-data/add_test_data.sql` adds 16 owners, 18 properties, 20 units, 20 renters, 16 tenancies and
+  18 maintenance entries with varied scenarios (dates relative to the day it runs). The owner runs it in the SQL Editor.
+  Records go to the first active admin; if an active manager exists, some owners/renters go to that manager.
+- All test ids start with `7e570000-`, and notes start with "TEST DATA". `remove_test_data.sql` deletes only those.
+- No tenant requests are seeded (they need a tenant login); create a test tenant from the Users page instead.
+
 ## Backlog / ideas offered to the owner
 
 - Supabase's built-in email only reaches project team members: "Forgot password" emails won't reach managers/tenants until custom SMTP is set up. Admins use "Make a new temporary password" instead. Custom SMTP (e.g. Resend) is a possible later step.
