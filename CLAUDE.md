@@ -95,8 +95,9 @@ The cloud session's network blocks vercel.app and supabase.co, so the owner test
 - [x] Vercel deployed
 - [ ] Supabase Auth → URL Configuration: Site URL + redirect `https://rental-desk-urhh.vercel.app/**` (asked, not confirmed)
 - [ ] Run migration `0002_match_settings.sql` in the Supabase SQL Editor
-- [ ] Run migration `0003_roles_and_requests.sql` (after 0002)
-- [ ] Add `SUPABASE_SECRET_KEY` in Vercel (Production + Preview) and redeploy
+- [x] Run migration `0003_roles_and_requests.sql` (owner's account shows as Admin)
+- [ ] Add `SUPABASE_SECRET_KEY` in Vercel (Production + Preview) and redeploy (asked; Users page showed the setup notice, not yet confirmed fixed)
+- [ ] Run `supabase/test-data/add_test_data.sql` (offered, not confirmed)
 - [ ] Owner's live test checklist (sign in, add owner/property/unit/renter, match, move-in, reload) — not yet reported
 
 ## Test data
