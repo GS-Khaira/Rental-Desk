@@ -77,6 +77,7 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
 | `src/components/Views.tsx` | Today, Units, Renters, Owners screens |
 | `src/components/Sheets.tsx` | Detail panels for unit, renter, owner |
 | `src/components/App.tsx` | Shell, sign-in, password reset, backups/CSV export |
+| `src/components/MainMenu.tsx` | Header menu (owner's request): one button showing the current page name opens a panel with the user, Sign out, all pages (with hints and the open-requests badge) and the exports. Replaced the old tab row and the footer buttons. The logo always returns to Today. |
 | `src/components/MatchSettingsView.tsx` | Matching settings page |
 | `src/components/UsersView.tsx` | Users & access page (admins) |
 | `src/components/Requests.tsx` | Requests tab, request detail, shared message thread |
