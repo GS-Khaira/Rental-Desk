@@ -323,3 +323,32 @@ body:has(.menupanel) .fab{display:none}
 .reasonchip:hover{border-color:var(--sea)}
 .review .btn.primary{flex:1;justify-content:center}
 .sheet .sec.review{position:sticky;bottom:calc(-40px - env(safe-area-inset-bottom,0px));z-index:2;box-shadow:0 -6px 18px rgba(19,36,47,.12);border-color:var(--sea)}
+
+/* ---------- find a match ---------- */
+.quickmatch{margin-bottom:22px;display:flex;flex-direction:column;gap:14px}
+.qmgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:start}
+.qmgrid input,.qmgrid select{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 10px;width:100%}
+.money{display:flex;align-items:center;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding-left:10px}
+.money:focus-within{outline:2px solid var(--sea);outline-offset:1px}
+.money span{color:var(--muted);font-weight:600}
+.money input{border:0!important;background:transparent!important;outline:0}
+.qmchecks{gap:12px;min-height:40px}
+.areapick{position:relative}
+.areapick summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 30px 9px 10px;position:relative}
+.areapick summary::-webkit-details-marker{display:none}
+.areapick summary::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg)}
+.areapick[open] summary{border-color:var(--sea)}
+.areapop{position:absolute;z-index:20;top:calc(100% + 4px);left:0;width:260px;max-height:300px;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:10px;display:flex;flex-direction:column;gap:4px}
+.qmbar{border-top:1px solid var(--line);padding-top:10px}
+.qmresults{display:flex;flex-direction:column}
+.qmrow{background:none;border:0;border-top:1px solid var(--line);width:100%;cursor:pointer;color:inherit;font:inherit;padding:10px 4px;border-radius:0}
+.qmrow:hover{background:var(--bg)}
+.qmrow.out{opacity:.6}
+.qmrow .t{font-weight:700}
+.sectionhead{margin:4px 0 12px}
+@media (max-width:900px){.qmgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.qmgrid{grid-template-columns:minmax(0,1fr)}.quickmatch .seg{width:100%}.quickmatch .seg button{flex:1}.areapop{width:100%}}
+.qmgrid input[type=checkbox]{width:18px;height:18px;padding:0;flex:none}
+.qmchecks .check{align-items:center;white-space:nowrap}
+.savebar{position:static;box-shadow:none}
+.savebar.pinned{position:sticky;box-shadow:var(--shadow)}

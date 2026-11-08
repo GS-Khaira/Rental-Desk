@@ -44,7 +44,7 @@ const VIEW_HINT: Record<View, string> = {
   owners: "Landlords and their properties",
   requests: "Questions and repairs from tenants",
   payments: "Rent payment proofs to approve",
-  matching: "How renters and units are scored",
+  matching: "Find matches and set the scoring rules",
   users: "Who can use the app, and their roles",
 };
 

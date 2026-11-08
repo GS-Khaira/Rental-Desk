@@ -5,6 +5,7 @@ import { isOpen, useStore } from "@/lib/store";
 import { CRITERIA, DEFAULT_SETTINGS, LIMITS, normalizeSettings, sameSettings, type Criterion, type MatchSettings } from "@/lib/match";
 import { plural } from "@/lib/format";
 import { ConfirmButton } from "./ui";
+import { QuickMatch } from "./QuickMatch";
 
 const INFO: Record<Criterion, { name: string; what: string; must: string }> = {
   budget:  { name: "Budget",       what: "Rent is within the renter's budget.",           must: "Rule out units over budget by more than the stretch allowed below." },
@@ -80,9 +81,13 @@ export function MatchSettingsView() {
       <div className="pagehead">
         <div>
           <div className="label">{isDefault ? "Using the default rules" : "Using your own rules"}</div>
-          <h1>Matching settings</h1>
+          <h1>Matching</h1>
         </div>
       </div>
+
+      <QuickMatch settings={clean} />
+
+      <h2 className="sectionhead">Scoring rules</h2>
 
       {!s.settingsSavable && (
         <div className="banner info">
@@ -152,7 +157,7 @@ export function MatchSettingsView() {
         </div>
       </div>
 
-      <div className="savebar">
+      <div className={`savebar ${dirty ? "pinned" : ""}`}>
         <span className="muted small">{dirty ? "You have unsaved changes." : "All changes saved."}</span>
         <div className="row">
           {!isDefault && <ConfirmButton label="Reset to defaults" onConfirm={() => save(DEFAULT_SETTINGS, "Default rules restored")} />}
