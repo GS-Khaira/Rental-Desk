@@ -13,11 +13,13 @@ import { RequestsView } from "./Requests";
 import { TenantPortal } from "./TenantPortal";
 import { UsersView } from "./UsersView";
 import { ROLE_INFO } from "@/lib/roles";
+import { MainMenu, type MenuPage } from "./MainMenu";
 
 /** Company logo. The image is black on transparent; dark mode turns it white (see .brandlogo in globals.css). */
-function Brand({ size = "header" }: { size?: "header" | "large" }) {
+function Brand({ size = "header", onHome }: { size?: "header" | "large"; onHome?: () => void }) {
   return (
-    <a href="#home" className={`brand brand-${size}`} aria-label="Kueppers Property Services, home">
+    <a href="#home" className={`brand brand-${size}`} aria-label="Kueppers Property Services, home"
+      onClick={onHome ? (e) => { e.preventDefault(); onHome(); } : undefined}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="brandlogo" src="/brand/kueppers-logo.png" alt="Kueppers Property Services" width={1770} height={383} />
     </a>
@@ -31,6 +33,15 @@ const TAB_LABEL: Record<View, string> = {
 };
 /** Tabs each staff role gets. Tenants don't use tabs: they get the tenant portal. */
 const viewsFor = (isAdmin: boolean): View[] => VIEWS.filter((v) => v !== "users" || isAdmin);
+const VIEW_HINT: Record<View, string> = {
+  home: "Matches, move-ins and what needs attention",
+  units: "Vacant, listed and rented units",
+  renters: "People looking, placed and past",
+  owners: "Landlords and their properties",
+  requests: "Questions and repairs from tenants",
+  matching: "How renters and units are scored",
+  users: "Who can use the app, and their roles",
+};
 
 export default function App() {
   if (!supabaseConfigured) return <NotConfigured />;
@@ -253,6 +264,23 @@ function Desk() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.isAdmin]);
   const go = (v: string) => { window.location.hash = v; };
+  /** Logo: back to Today from anywhere, even if Today is already showing. */
+  const goHome = () => {
+    s.setDetail(null);
+    if (window.location.hash === "#home" || view === "home") { setView("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    window.location.hash = "home";
+  };
+  const pages: MenuPage[] = views.map((v) => ({
+    id: v, label: TAB_LABEL[v], hint: VIEW_HINT[v], badge: v === "requests" && openRequests > 0 ? openRequests : undefined,
+  }));
+  const exports = [
+    { label: "Back up all records", hint: "Everything, as one file you can keep",
+      run: () => download(`kueppers-backup-${today()}.json`, JSON.stringify(s.data, null, 2), "application/json") },
+    { label: "Renters to Excel", hint: "A spreadsheet (CSV) of renters",
+      run: () => download(`renters-${today()}.csv`, toCsv(s.data.renters as unknown as Record<string, unknown>[]), "text/csv") },
+    { label: "Units to Excel", hint: "A spreadsheet (CSV) of units with addresses",
+      run: () => download(`units-${today()}.csv`, toCsv(s.data.units.map((u) => ({ address: s.unitName(u), area: s.propOf(u)?.area, ...u })) as unknown as Record<string, unknown>[]), "text/csv") },
+  ];
 
   const addItems: [string, string, () => void][] = [
     ["Renter", "someone looking for a place", () => a.renter()],
@@ -265,16 +293,12 @@ function Desk() {
     <>
       <header className="top">
         <div className="wrap topin">
-          <Brand />
-          <nav className="tabs">
-            {views.map((v) => (
-              <a key={v} href={"#" + v} aria-current={view === v ? "page" : undefined}>
-                {TAB_LABEL[v]}
-                {v === "requests" && openRequests > 0 && <span className="badge" aria-label={`${openRequests} open`}>{openRequests}</span>}
-              </a>
-            ))}
-          </nav>
-          <div className="row addbar"><button className="btn primary" type="button" onClick={() => setAdding(true)}>+ Add</button></div>
+          <Brand onHome={goHome} />
+          <div className="row headactions">
+            <button className="btn primary addbar" type="button" onClick={() => setAdding(true)}>+ Add</button>
+            <MainMenu pages={pages} current={view} exports={exports} onSignOut={() => supabase().auth.signOut()}
+              user={{ name: s.profile?.full_name ?? "", email: s.session?.user.email ?? "", role: s.role }} />
+          </div>
         </div>
         {s.isAdmin && s.rolesReady && <ScopeBar />}
       </header>
@@ -293,12 +317,6 @@ function Desk() {
             {view === "users" && s.isAdmin && <UsersView />}
           </>
         )}
-        <div className="row footer">
-          <button className="btn small" type="button" onClick={() => download(`kueppers-backup-${today()}.json`, JSON.stringify(s.data, null, 2), "application/json")}>Back up all records</button>
-          <button className="btn small" type="button" onClick={() => download(`renters-${today()}.csv`, toCsv(s.data.renters as unknown as Record<string, unknown>[]), "text/csv")}>Renters to Excel (CSV)</button>
-          <button className="btn small" type="button" onClick={() => download(`units-${today()}.csv`, toCsv(s.data.units.map((u) => ({ address: s.unitName(u), area: s.propOf(u)?.area, ...u })) as unknown as Record<string, unknown>[]), "text/csv")}>Units to Excel (CSV)</button>
-          <button className="btn small" type="button" onClick={() => supabase().auth.signOut()}>Sign out</button>
-        </div>
       </main>
       <button className="btn primary fab" type="button" onClick={() => setAdding(true)}>+ Add</button>
 

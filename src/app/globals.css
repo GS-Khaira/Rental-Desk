@@ -257,3 +257,33 @@ a.btn.primary{color:var(--surface)}
   .rolesum .stat .n{font-size:26px}
   .rolesum .stat .muted{display:none}
 }
+
+/* ---------- header menu ---------- */
+.topin{flex-wrap:nowrap}
+.headactions{flex-wrap:nowrap;gap:8px}
+.menuwrap{position:relative}
+.menubtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 12px;font-weight:600;cursor:pointer;color:var(--ink)}
+.menubtn:hover,.menubtn[aria-expanded="true"]{border-color:var(--sea);color:var(--sea)}
+.menubtn .badge{margin-left:0}
+.menuscrim{position:fixed;inset:0;z-index:35}
+.menupanel{position:absolute;right:0;top:calc(100% + 8px);z-index:36;width:340px;max-height:calc(100vh - 90px);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:8px}
+@media (prefers-reduced-motion:no-preference){.menupanel{animation:menuin .14s ease-out}@keyframes menuin{from{opacity:0;transform:translateY(-4px)}}}
+.menuuser{display:flex;gap:10px;align-items:center;padding:8px 8px 12px;border-bottom:1px solid var(--line)}
+.menuuser .t{font-weight:700}
+.menusec{display:flex;flex-direction:column;padding:8px 0;border-bottom:1px solid var(--line)}
+.menusec:last-child{border-bottom:0;padding-bottom:0}
+.menusec>.label{padding:2px 8px 4px}
+.menuitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:8px;color:var(--ink);text-decoration:none;cursor:pointer}
+.menuitem>span:first-child{display:flex;flex-direction:column;min-width:0}
+.menuitem:hover,.menuitem:focus-visible{background:var(--sunk)}
+.menuitem[aria-current="page"]{background:var(--sea-soft);color:var(--sea)}
+.menuitem.signout b{color:var(--no)}
+@media (max-width:600px){
+  .menulabel{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .menupanel{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 64px);width:auto;max-height:calc(100vh - env(safe-area-inset-top,0px) - 80px)}
+}
+.menuuser>div{flex:1}
+.menuuser .signout{color:var(--no);flex:none}
+.menuitem{padding:7px 8px}
+.menuitem.compact{padding:6px 8px}
+body:has(.menupanel) .fab{display:none}
