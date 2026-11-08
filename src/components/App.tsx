@@ -10,6 +10,7 @@ import { DetailSheet } from "./Sheets";
 import { Owners, Renters, Today, Units } from "./Views";
 import { MatchSettingsView } from "./MatchSettingsView";
 import { RequestsView } from "./Requests";
+import { PaymentsView } from "./Payments";
 import { TenantPortal } from "./TenantPortal";
 import { UsersView } from "./UsersView";
 import { ROLE_INFO } from "@/lib/roles";
@@ -29,10 +30,10 @@ function Brand({ size = "header", onHome }: { size?: "header" | "large"; onHome?
   );
 }
 
-const VIEWS = ["home", "units", "renters", "owners", "requests", "matching", "users"] as const;
+const VIEWS = ["home", "units", "renters", "owners", "requests", "payments", "matching", "users"] as const;
 type View = (typeof VIEWS)[number];
 const TAB_LABEL: Record<View, string> = {
-  home: "Today", units: "Units", renters: "Renters", owners: "Owners", requests: "Requests", matching: "Matching", users: "Users",
+  home: "Today", units: "Units", renters: "Renters", owners: "Owners", requests: "Requests", payments: "Payments", matching: "Matching", users: "Users",
 };
 /** Tabs each staff role gets. Tenants don't use tabs: they get the tenant portal. */
 const viewsFor = (isAdmin: boolean): View[] => VIEWS.filter((v) => v !== "users" || isAdmin);
@@ -42,6 +43,7 @@ const VIEW_HINT: Record<View, string> = {
   renters: "People looking, placed and past",
   owners: "Landlords and their properties",
   requests: "Questions and repairs from tenants",
+  payments: "Rent payment proofs to approve",
   matching: "How renters and units are scored",
   users: "Who can use the app, and their roles",
 };
@@ -238,6 +240,7 @@ function Desk() {
   const [exportingProperty, setExportingProperty] = useState(false);
   const views = viewsFor(s.isAdmin);
   const openRequests = s.requests.filter((r) => r.status === "Open" && (!s.isAdmin || s.scope === "all" || r.user_id === s.scope)).length;
+  const toReview = s.payments.filter((p) => p.status === "Pending" && (!s.isAdmin || s.scope === "all" || p.user_id === s.scope)).length;
 
   useEffect(() => {
     const read = () => {
@@ -259,7 +262,7 @@ function Desk() {
     window.location.hash = "home";
   };
   const pages: MenuPage[] = views.map((v) => ({
-    id: v, label: TAB_LABEL[v], hint: VIEW_HINT[v], badge: v === "requests" && openRequests > 0 ? openRequests : undefined,
+    id: v, label: TAB_LABEL[v], hint: VIEW_HINT[v], badge: v === "requests" && openRequests > 0 ? openRequests : v === "payments" && toReview > 0 ? toReview : undefined,
   }));
   const exports = [
     { label: "One property…", hint: "Pick a building: its units, tenants, history or maintenance",
@@ -303,6 +306,7 @@ function Desk() {
             {view === "renters" && <Renters />}
             {view === "owners" && <Owners />}
             {view === "requests" && <RequestsView />}
+            {view === "payments" && <PaymentsView />}
             {view === "matching" && <MatchSettingsView />}
             {view === "users" && s.isAdmin && <UsersView />}
           </>

@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { REQUEST_CATEGORIES } from "@/lib/roles";
 import { fmtDate, money } from "@/lib/format";
-import type { TenantHome, TenantRequest } from "@/lib/types";
+import type { RentPayment, TenantHome, TenantRequest } from "@/lib/types";
+import { TenantPayments } from "./Payments";
 import { useOpenForm } from "./FormModal";
 import { RequestStatusPill, RequestThread, when } from "./Requests";
 import { Empty, KV } from "./ui";
@@ -16,6 +17,7 @@ export function TenantPortal({ header }: { header: React.ReactNode }) {
   const openForm = useOpenForm();
   const [home, setHome] = useState<TenantHome | null | undefined>(undefined);
   const [requests, setRequests] = useState<TenantRequest[]>([]);
+  const [payments, setPayments] = useState<RentPayment[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -26,12 +28,15 @@ export function TenantPortal({ header }: { header: React.ReactNode }) {
     Promise.all([
       supabase().rpc("tenant_home"),
       supabase().from("tenant_requests").select("*").order("last_message_at", { ascending: false }),
-    ]).then(([h, r]) => {
+      supabase().from("rent_payments").select("*").order("period", { ascending: false }).order("created_at", { ascending: false }),
+    ]).then(([h, r, pay]) => {
       if (!live) return;
       if (h.error || r.error) { setErr("Couldn't load your details. Check your connection, then reload."); return; }
       setErr(null);
       setHome((h.data as TenantHome) ?? null);
       setRequests((r.data ?? []) as TenantRequest[]);
+      // null = rent payments not switched on yet (migration 0005 not run): hide that section
+      setPayments(pay.error ? null : ((pay.data ?? []) as RentPayment[]));
     });
     return () => { live = false; };
   }, [tick]);
@@ -109,6 +114,8 @@ export function TenantPortal({ header }: { header: React.ReactNode }) {
             </section>
           </div>
         )}
+
+        {hasHome && payments && <TenantPayments payments={payments} rent={home?.tenancy?.rent ?? null} onChanged={load} />}
 
         {hasHome && (
           <section className="panel" style={{ marginTop: 20 }}>

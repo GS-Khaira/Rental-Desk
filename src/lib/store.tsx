@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, match, normalizeSettings, type MatchResult, type Matc
 import { isStaffRole } from "./roles";
 import {
   TABLES, type Data, type Profile, type Property, type Renter, type Role, type TableName, type Tables,
-  type Tenancy, type TenantRequest, type Unit,
+  type RentPayment, type Tenancy, type TenantRequest, type Unit,
 } from "./types";
 
 const empty = (): Data => ({ owners: [], properties: [], units: [], renters: [], tenancies: [], maintenance: [] });
@@ -36,7 +36,7 @@ function clean(row: Record<string, unknown>) {
 
 export interface UserDraft { role: Role; full_name?: string; email?: string; phone?: string; renter_id?: string }
 
-export type Detail = { type: "unit" | "renter" | "owner" | "request" | "user"; id: string } | null;
+export type Detail = { type: "unit" | "renter" | "owner" | "request" | "user" | "payment"; id: string } | null;
 
 /**
  * How far the signed-in account is set up:
@@ -78,6 +78,10 @@ interface Store {
 
   requests: TenantRequest[];
   reloadRequests: () => Promise<void>;
+  /** Rent payment proofs sent by tenants (migration 0005). */
+  payments: RentPayment[];
+  paymentsReady: boolean;
+  reloadPayments: () => Promise<void>;
 
   loading: boolean;
   loadError: string | null;
@@ -122,6 +126,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [scope, setScope] = useState("all");
   const [allData, setAllData] = useState<Data>(empty);
   const [requests, setRequests] = useState<TenantRequest[]>([]);
+  const [payments, setPayments] = useState<RentPayment[]>([]);
+  const [paymentsReady, setPaymentsReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail>(null);
@@ -177,6 +183,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!error) setRequests((data ?? []) as TenantRequest[]);
   }, []);
 
+  const reloadPayments = useCallback(async () => {
+    const { data, error } = await supabase().from("rent_payments").select("*").order("created_at", { ascending: false }).limit(2000);
+    setPaymentsReady(!error);
+    if (!error) setPayments((data ?? []) as RentPayment[]);
+  }, []);
+
   const reload = useCallback(async () => {
     setLoading(true);
     try {
@@ -204,16 +216,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!userId || !isStaff) { setAllData(empty()); setRequests([]); setProfiles([]); setSettings(DEFAULT_SETTINGS); return; }
+    if (!userId || !isStaff) { setAllData(empty()); setRequests([]); setPayments([]); setProfiles([]); setSettings(DEFAULT_SETTINGS); return; }
     const all = () => {
       reload();
-      if (rolesReady) reloadRequests();
+      if (rolesReady) { reloadRequests(); reloadPayments(); }
       if (rolesReady && isAdmin) reloadProfiles();
     };
     all();
     window.addEventListener("focus", all);
     return () => window.removeEventListener("focus", all);
-  }, [userId, isStaff, isAdmin, rolesReady, reload, reloadRequests, reloadProfiles]);
+  }, [userId, isStaff, isAdmin, rolesReady, reload, reloadRequests, reloadPayments, reloadProfiles]);
 
   // An admin's "Viewing" choice narrows every screen at once.
   const data = useMemo<Data>(() => {
@@ -298,7 +310,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value: Store = {
     session, authReady, account, profile, role, isAdmin, isStaff, rolesReady, reloadProfile,
     data, allData, scope, setScope, profiles, ...people, reloadProfiles, userDraft, setUserDraft,
-    requests, reloadRequests,
+    requests, reloadRequests, payments, paymentsReady, reloadPayments,
     loading, loadError, reload, save, remove,
     detail, setDetail, toast, toastMsg, settings, settingsSavable, saveSettings, incomeReady, ...lookups,
   };

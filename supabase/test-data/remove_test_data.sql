@@ -8,6 +8,9 @@ do $$ begin
   if to_regclass('public.tenant_requests') is not null then
     delete from public.tenant_requests where unit_id::text like '7e570000-%' or renter_id::text like '7e570000-%';
   end if;
+  if to_regclass('public.rent_payments') is not null then
+    delete from public.rent_payments where unit_id::text like '7e570000-%' or renter_id::text like '7e570000-%';
+  end if;
   if to_regclass('public.profiles') is not null then
     update public.profiles set renter_id = null where renter_id::text like '7e570000-%';
   end if;
