@@ -19,6 +19,7 @@ export function MainMenu({ pages, current, exports, user, onSignOut }: {
   onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [exportsOpen, setExportsOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const currentPage = pages.find((p) => p.id === current);
@@ -86,12 +87,22 @@ export function MainMenu({ pages, current, exports, user, onSignOut }: {
             </div>
 
             <div className="menusec" role="group" aria-label="Export">
-              <div className="label">Export</div>
-              {exports.map((x) => (
-                <button key={x.label} type="button" className="menuitem compact" title={x.hint} onClick={() => { x.run(); close(); }}>
-                  <span><b>{x.label}</b></span>
-                </button>
-              ))}
+              <button type="button" className="menuitem compact exporttoggle" aria-expanded={exportsOpen} aria-controls="menu-exports"
+                onClick={() => setExportsOpen((o) => !o)}>
+                <span><b>Export</b><span className="muted small">Spreadsheets and backups</span></span>
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" className="chev">
+                  <path d="M4 5.5l3 3 3-3" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {exportsOpen && (
+                <div id="menu-exports" className="submenu">
+                  {exports.map((x) => (
+                    <button key={x.label} type="button" className="menuitem compact" onClick={() => { x.run(); close(false); }}>
+                      <span><b>{x.label}</b><span className="muted small">{x.hint}</span></span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>

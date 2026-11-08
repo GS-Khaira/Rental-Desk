@@ -14,6 +14,9 @@ import { TenantPortal } from "./TenantPortal";
 import { UsersView } from "./UsersView";
 import { ROLE_INFO } from "@/lib/roles";
 import { MainMenu, type MenuPage } from "./MainMenu";
+import { PropertyExport } from "./PropertyExport";
+import { rentersCsv, unitsCsv } from "@/lib/exports";
+import { downloadText } from "@/lib/download";
 
 /** Company logo. The image is black on transparent; dark mode turns it white (see .brandlogo in globals.css). */
 function Brand({ size = "header", onHome }: { size?: "header" | "large"; onHome?: () => void }) {
@@ -227,27 +230,12 @@ function ScopeBar() {
   );
 }
 
-function download(filename: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-function toCsv(rows: Record<string, unknown>[]) {
-  if (!rows.length) return "";
-  const cols = Object.keys(rows[0]).filter((c) => c !== "user_id");
-  const cell = (v: unknown) => {
-    const s = Array.isArray(v) ? v.join("; ") : v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  return [cols.join(","), ...rows.map((r) => cols.map((c) => cell(r[c])).join(","))].join("\n");
-}
-
 function Desk() {
   const s = useStore();
   const a = useActions();
   const [view, setView] = useState<View>("home");
   const [adding, setAdding] = useState(false);
+  const [exportingProperty, setExportingProperty] = useState(false);
   const views = viewsFor(s.isAdmin);
   const openRequests = s.requests.filter((r) => r.status === "Open" && (!s.isAdmin || s.scope === "all" || r.user_id === s.scope)).length;
 
@@ -274,12 +262,14 @@ function Desk() {
     id: v, label: TAB_LABEL[v], hint: VIEW_HINT[v], badge: v === "requests" && openRequests > 0 ? openRequests : undefined,
   }));
   const exports = [
-    { label: "Back up all records", hint: "Everything, as one file you can keep",
-      run: () => download(`kueppers-backup-${today()}.json`, JSON.stringify(s.data, null, 2), "application/json") },
-    { label: "Renters to Excel", hint: "A spreadsheet (CSV) of renters",
-      run: () => download(`renters-${today()}.csv`, toCsv(s.data.renters as unknown as Record<string, unknown>[]), "text/csv") },
-    { label: "Units to Excel", hint: "A spreadsheet (CSV) of units with addresses",
-      run: () => download(`units-${today()}.csv`, toCsv(s.data.units.map((u) => ({ address: s.unitName(u), area: s.propOf(u)?.area, ...u })) as unknown as Record<string, unknown>[]), "text/csv") },
+    { label: "One property…", hint: "Pick a building: its units, tenants, history or maintenance",
+      run: () => setExportingProperty(true) },
+    { label: "All renters", hint: "Spreadsheet (CSV) of every renter",
+      run: () => downloadText(`renters-${today()}.csv`, rentersCsv(s.data), "text/csv;charset=utf-8") },
+    { label: "All units", hint: "Spreadsheet (CSV) of every unit, by property",
+      run: () => downloadText(`units-${today()}.csv`, unitsCsv(s.data), "text/csv;charset=utf-8") },
+    { label: "Full backup", hint: "Every record as one file (JSON) to keep safe",
+      run: () => downloadText(`kueppers-backup-${today()}.json`, JSON.stringify(s.data, null, 2), "application/json") },
   ];
 
   const addItems: [string, string, () => void][] = [
@@ -337,6 +327,7 @@ function Desk() {
           </div>
         </>
       )}
+      {exportingProperty && <PropertyExport onClose={() => setExportingProperty(false)} />}
       <DetailSheet />
       <PasswordReset />
       {s.toastMsg && <div className="toast" role="status">{s.toastMsg}</div>}
