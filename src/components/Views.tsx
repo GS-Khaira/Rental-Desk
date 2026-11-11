@@ -36,7 +36,6 @@ export function Today({ go }: { go: (v: string) => void }) {
         </div>
       </div>
       <OpenRequestsBanner />
-      <PaymentsBanner />
       <div className="stats">
         <button className="stat" type="button" onClick={() => go("units")}>
           <div className="label">Units open</div><div className="n num">{open.length}</div>
@@ -108,18 +107,6 @@ function OpenRequestsBanner() {
     <div className="banner reqbanner">
       <span><b>{plural(open.length, "tenant request")} waiting for a reply.</b> Latest: “{open[0].subject}”</span>
       <a className="btn small primary" href="#requests">View requests</a>
-    </div>
-  );
-}
-
-function PaymentsBanner() {
-  const s = useStore();
-  const due = s.payments.filter((p) => p.status === "Pending" && (!s.isAdmin || s.scope === "all" || p.user_id === s.scope));
-  if (!due.length) return null;
-  return (
-    <div className="banner paybanner">
-      <span><b>{plural(due.length, "rent payment")} to review</b> ({money(due.reduce((n, p) => n + Number(p.amount), 0))}). Approve each one once the money is in your account.</span>
-      <a className="btn small primary" href="#payments">Review payments</a>
     </div>
   );
 }

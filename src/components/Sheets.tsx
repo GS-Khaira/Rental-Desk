@@ -8,7 +8,6 @@ import { useActions } from "./actions";
 import { Chips, ConfirmButton, Empty, KV, Linkish, Pill, RentAgainPill, ScoreBadge, StatusPill } from "./ui";
 import { renterHistoryPill } from "./Views";
 import { RequestSheet } from "./Requests";
-import { PaymentSheet, RenterPayments } from "./Payments";
 
 export function DetailSheet() {
   const s = useStore();
@@ -26,7 +25,6 @@ export function DetailSheet() {
   if (detail.type === "renter") { const r = data.renters.find((x) => x.id === detail.id); if (r) body = <RenterSheet r={r} />; }
   if (detail.type === "owner") { const o = data.owners.find((x) => x.id === detail.id); if (o) body = <OwnerSheet o={o} />; }
   if (detail.type === "request") { const r = s.requests.find((x) => x.id === detail.id); if (r) body = <RequestSheet r={r} />; }
-  if (detail.type === "payment") { const p = s.payments.find((x) => x.id === detail.id); if (p) body = <PaymentSheet key={p.id + p.status} p={p} />; }
   if (!body) return null;
   return (
     <>
@@ -188,7 +186,6 @@ function RenterSheet({ r }: { r: Renter }) {
         {hist.length ? <div className="tl">{hist.map((t) => <div key={t.id} className={`item ${t.move_out ? "ended" : ""}`}><TenancyLine t={t} show="unit" /></div>)}</div>
           : <div className="muted">No tenancies with you yet.</div>}
       </div>
-      <RenterPayments renterId={r.id} />
       {s.isAdmin && s.rolesReady && <PortalAccess r={r} />}
       {s.isAdmin && s.rolesReady && <div className="sec"><KV rows={[["Managed by", s.personName(r.user_id)]]} /></div>}
       <div className="sec">

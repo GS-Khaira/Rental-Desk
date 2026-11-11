@@ -151,32 +151,3 @@ export interface TenantHome {
   property: { address: string; area: string; postal: string | null } | null;
   manager: { name: string | null; email: string | null; phone: string | null } | null;
 }
-
-/* ---------- rent payments (migration 0005) ---------- */
-export type PaymentStatus = "Pending" | "Approved" | "Sent back";
-export type PaymentMethod = "e-Transfer" | "Bank transfer" | "Cheque" | "Cash" | "Other";
-
-export interface RentPayment {
-  id: string;
-  user_id: string;
-  tenant_id: string;
-  renter_id: string | null;
-  tenancy_id: string | null;
-  unit_id: string | null;
-  /** First day of the month it pays for, e.g. "2026-11-01". */
-  period: string;
-  amount: number;
-  /** The tenancy's rent when it was sent, to compare against. */
-  expected: number | null;
-  paid_on: string;
-  method: PaymentMethod;
-  reference: string | null;
-  note: string | null;
-  file_path: string;
-  file_name: string | null;
-  status: PaymentStatus;
-  reviewed_by: string | null;
-  reviewed_at: string | null;
-  review_note: string | null;
-  created_at: string;
-}
