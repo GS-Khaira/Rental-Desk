@@ -12,27 +12,11 @@
 //   SMTP_HOST, SMTP_PORT       defaults smtp.gmail.com and 465 (change to move to Resend etc.)
 //   MAIL_FROM_NAME             default "Kueppers Property Services"
 //   APP_URL                    default: the Vercel production address
-import nodemailer from "nodemailer";
 import { adminClient, handle, HttpError } from "@/lib/server/admin";
 import { buildRequestEmail, type EmailEvent } from "@/lib/server/requestEmail";
+import { appUrl, explainMailError, mailer } from "@/lib/server/mailer";
 
 interface Person { id: string; email: string | null; full_name: string | null; role: string; active: boolean; notify_email?: boolean }
-
-function mailer() {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD;
-  if (!user || !pass) throw new HttpError(503, "Email isn't set up: add SMTP_USER and SMTP_PASSWORD in Vercel.");
-  const port = Number(process.env.SMTP_PORT || 465);
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com", port, secure: port === 465, auth: { user, pass: pass.replace(/\s+/g, "") },
-  });
-  return { transport, from: `"${process.env.MAIL_FROM_NAME || "Kueppers Property Services"}" <${user}>` };
-}
-
-function appUrl(req: Request) {
-  const fromEnv = process.env.APP_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "");
-  return (fromEnv || new URL(req.url).origin).replace(/\/$/, "");
-}
 
 export async function POST(req: Request) {
   return handle(async () => {
@@ -110,7 +94,13 @@ export async function POST(req: Request) {
     });
 
     const { transport, from } = mailer();
-    await transport.sendMail({ from, to: recipient.email, subject: email.subject, text: email.text, html: email.html });
+    try {
+      await transport.sendMail({ from, to: recipient.email, subject: email.subject, text: email.text, html: email.html });
+    } catch (e) {
+      const why = explainMailError(e, `${process.env.SMTP_HOST || "smtp.gmail.com"}:${process.env.SMTP_PORT || 465}`);
+      console.error("request email failed:", why, e);
+      throw new HttpError(502, why);
+    }
     await markSent();
     return Response.json({ sent: true });
   });

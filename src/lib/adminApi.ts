@@ -24,7 +24,10 @@ async function call<T>(path: string, method: string, body?: unknown): Promise<T>
 
 export interface UserInput { full_name: string; email?: string; phone: string | null; role: Role; renter_id: string | null }
 
+export interface EmailCheck { label: string; ok: boolean | null; detail: string }
+
 export const adminApi = {
+  emailCheck: () => call<{ checks: EmailCheck[] }>("/api/notify/test", "POST").then((r) => r.checks),
   list: () => call<{ users: AdminUser[] }>("/api/admin/users", "GET").then((r) => r.users),
   create: (u: UserInput & { email: string }) => call<{ id: string; tempPassword: string }>("/api/admin/users", "POST", u),
   update: (id: string, u: UserInput) => call<{ ok: true }>(`/api/admin/users/${id}`, "PATCH", { action: "update", ...u }),

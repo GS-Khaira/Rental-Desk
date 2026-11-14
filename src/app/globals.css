@@ -335,3 +335,9 @@ body:has(.menupanel) .fab{display:none}
 .emailswitch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted)}
 .emailswitch input{width:16px;height:16px;margin:0;accent-color:var(--sea)}
 .menuextra{padding:8px 8px 10px;border-bottom:1px solid var(--line)}
+.checks{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.checks li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}
+.checks .mark{font-weight:700;text-align:center}
+.checks li.ok .mark{color:var(--ok)} .checks li.bad{border-color:var(--no);background:var(--no-soft)} .checks li.bad .mark{color:var(--no)} .checks li.info .mark{color:var(--muted)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.menuextra{display:flex;flex-direction:column;align-items:flex-start}

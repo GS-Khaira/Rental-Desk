@@ -15,6 +15,7 @@ import { UsersView } from "./UsersView";
 import { ROLE_INFO } from "@/lib/roles";
 import { MainMenu, type MenuPage } from "./MainMenu";
 import { EmailSwitch } from "./EmailSwitch";
+import { EmailCheckButton } from "./EmailCheck";
 import { PropertyExport } from "./PropertyExport";
 import { rentersCsv, unitsCsv } from "@/lib/exports";
 import { downloadText } from "@/lib/download";
@@ -285,7 +286,7 @@ function Desk() {
             <button className="btn primary addbar" type="button" onClick={() => setAdding(true)}>+ Add</button>
             <MainMenu pages={pages} current={view} exports={exports} onSignOut={() => supabase().auth.signOut()}
               user={{ name: s.profile?.full_name ?? "", email: s.session?.user.email ?? "", role: s.role }}
-              extra={<EmailSwitch label="Email me about tenant requests" />} />
+              extra={<><EmailSwitch label="Email me about tenant requests" />{s.isAdmin && s.rolesReady && <EmailCheckButton />}</>} />
           </div>
         </div>
         {s.isAdmin && s.rolesReady && <ScopeBar />}
