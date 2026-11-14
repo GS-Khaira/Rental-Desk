@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import { openedFromResetLink, supabase } from "./supabase";
 import { DEFAULT_SETTINGS, match, normalizeSettings, type MatchResult, type MatchSettings } from "./match";
 import { isStaffRole } from "./roles";
 import {
@@ -59,6 +59,9 @@ interface Store {
   /** False until migration 0003 has been run. */
   rolesReady: boolean;
   reloadProfile: () => Promise<void>;
+  /** Signed in from a password reset link: must choose a new password before anything else. */
+  recovering: boolean;
+  finishRecovery: () => void;
 
   /** Records in view: everything the account may see, narrowed by an admin's "Viewing" choice. */
   data: Data;
@@ -115,6 +118,7 @@ export const isOpen = (u: Unit) => u.status === "Vacant" || u.status === "Listed
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [recovering, setRecovering] = useState<boolean>(() => openedFromResetLink);
   const [authReady, setAuthReady] = useState(false);
   const [account, setAccount] = useState<AccountState>("loading");
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -139,7 +143,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sb = supabase();
     sb.auth.getSession().then(({ data }) => { setSession(data.session); setAuthReady(true); });
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
+      if (event === "SIGNED_OUT") setRecovering(false);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -297,6 +305,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value: Store = {
     session, authReady, account, profile, role, isAdmin, isStaff, rolesReady, reloadProfile,
+    recovering, finishRecovery: () => setRecovering(false),
     data, allData, scope, setScope, profiles, ...people, reloadProfiles, userDraft, setUserDraft,
     requests, reloadRequests,
     loading, loadError, reload, save, remove,

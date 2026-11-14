@@ -79,7 +79,8 @@ function Gate() {
   if (s.account === "loading") return s.loadError ? <Notice title="Can't reach the app right now" body={s.loadError} /> : <Loading />;
   if (s.account === "off") return <Notice title="Your access is switched off" body="Please contact Kueppers Property Services if you think this is a mistake." />;
   if (s.account === "missing") return <Notice title="Your account isn't set up yet" body="An admin needs to give your account a role. Please contact Kueppers Property Services." />;
-  if (s.profile?.must_change_password) return <SetOwnPassword />;
+  if (s.recovering) return <SetOwnPassword reason="reset" />;
+  if (s.profile?.must_change_password) return <SetOwnPassword reason="temporary" />;
   if (s.role === "tenant") return <><TenantPortal header={<SimpleHeader />} /><Toast /></>;
   return <Desk />;
 }
@@ -115,7 +116,11 @@ function Notice({ title, body }: { title: string; body: string }) {
 }
 
 /** First sign-in with a temporary password: choose your own before going further. */
-function SetOwnPassword() {
+/**
+ * Choose a new password before going any further. Shown after a password reset link,
+ * and on first sign-in with a temporary password.
+ */
+function SetOwnPassword({ reason }: { reason: "reset" | "temporary" }) {
   const s = useStore();
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
@@ -127,21 +132,37 @@ function SetOwnPassword() {
     if (pw !== pw2) return setErr("The two passwords don't match.");
     setBusy(true); setErr(null);
     const { error } = await supabase().auth.updateUser({ password: pw });
-    if (error) { setBusy(false); setErr(/different|same/i.test(error.message) ? "Choose a password different from the temporary one." : error.message); return; }
-    await supabase().rpc("clear_password_flag");
+    if (error) {
+      setBusy(false);
+      if (/different|same/i.test(error.message)) setErr(reason === "reset" ? "That's your current password. Choose a different one." : "Choose a password different from the temporary one.");
+      else if (/expired|invalid|session/i.test(error.message)) setErr("This reset link has expired. Sign out, then use “Forgot password” again for a new link.");
+      else setErr(error.message);
+      return;
+    }
+    await supabase().rpc("clear_password_flag"); // also clears any temporary-password flag
+    if (reason === "reset") {
+      // Drop the sign-in details the email link put in the address, and start on Today.
+      window.history.replaceState(null, "", window.location.pathname + "#home");
+      s.finishRecovery();
+    }
     await s.reloadProfile();
-    s.toast("Password saved");
+    s.toast(reason === "reset" ? "Password changed. You're signed in." : "Password saved");
   }
   return (
     <main className="wrap center">
       <form className="panel login" onSubmit={submit} noValidate>
         <Brand size="large" />
-        <h1 style={{ marginTop: 12 }}>Choose your password</h1>
-        <p className="muted" style={{ margin: 0 }}>You signed in with a temporary password. Pick your own to continue.</p>
+        <h1 style={{ marginTop: 12 }}>{reason === "reset" ? "Choose a new password" : "Choose your password"}</h1>
+        <p className="muted" style={{ margin: 0 }}>
+          {reason === "reset"
+            ? <>Setting a new password for <b>{s.session?.user.email}</b>. You&apos;ll use it the next time you sign in.</>
+            : "You signed in with a temporary password. Pick your own to continue."}
+        </p>
         <label className="fld"><span>New password</span><input id="own-pw" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
         <label className="fld"><span>Type it again</span><input id="own-pw2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>
         {err && <div className="err">{err}</div>}
-        <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: "center" }}>{busy ? "Saving…" : "Save and continue"}</button>
+        <span className="hint">At least 8 characters.</span>
+        <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: "center" }}>{busy ? "Saving…" : reason === "reset" ? "Save new password" : "Save and continue"}</button>
         <button className="linkish small" type="button" onClick={() => supabase().auth.signOut()}>Sign out</button>
       </form>
       <Toast />
@@ -182,31 +203,6 @@ function Login() {
         <button className="linkish small" type="button" onClick={reset}>Forgot password</button>
       </form>
     </main>
-  );
-}
-
-function PasswordReset() {
-  const s = useStore();
-  const [show, setShow] = useState(false);
-  const [pw, setPw] = useState("");
-  useEffect(() => {
-    const { data } = supabase().auth.onAuthStateChange((e) => { if (e === "PASSWORD_RECOVERY") setShow(true); });
-    return () => data.subscription.unsubscribe();
-  }, []);
-  if (!show) return null;
-  return (
-    <div className="modal">
-      <form className="box f" onSubmit={async (e) => {
-        e.preventDefault();
-        if (pw.length < 8) { s.toast("Use at least 8 characters."); return; }
-        const { error } = await supabase().auth.updateUser({ password: pw });
-        if (error) s.toast(error.message); else { s.toast("Password updated"); setShow(false); }
-      }}>
-        <h2>Set a new password</h2>
-        <label className="fld"><span>New password</span><input id="new-password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
-        <button className="btn primary" type="submit">Save password</button>
-      </form>
-    </div>
   );
 }
 
@@ -329,7 +325,6 @@ function Desk() {
       )}
       {exportingProperty && <PropertyExport onClose={() => setExportingProperty(false)} />}
       <DetailSheet />
-      <PasswordReset />
       {s.toastMsg && <div className="toast" role="status">{s.toastMsg}</div>}
     </>
   );
