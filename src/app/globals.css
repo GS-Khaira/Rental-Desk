@@ -330,3 +330,8 @@ body:has(.menupanel) .fab{display:none}
 .qmchecks .check{align-items:center;white-space:nowrap}
 .savebar{position:static;box-shadow:none}
 .savebar.pinned{position:sticky;box-shadow:var(--shadow)}
+
+/* ---------- request email switch ---------- */
+.emailswitch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted)}
+.emailswitch input{width:16px;height:16px;margin:0;accent-color:var(--sea)}
+.menuextra{padding:8px 8px 10px;border-bottom:1px solid var(--line)}

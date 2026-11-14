@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/lib/store";
 import { REQUEST_STATUSES } from "@/lib/roles";
+import { notifyRequest } from "@/lib/notify";
 import type { RequestMessage, RequestStatus, TenantRequest } from "@/lib/types";
 import { Empty, Linkish } from "./ui";
 
@@ -59,12 +60,13 @@ export function RequestThread({ request, nameOf, staff, onChanged }: {
     setReply("");
     load();
     onChanged?.();
+    void notifyRequest(request.id, "message"); // email the other side
   }
 
   async function setStatus(status: RequestStatus) {
     const { error } = await supabase().from("tenant_requests").update({ status }).eq("id", request.id);
     if (error) setErr("Couldn't change the status. Try again.");
-    else onChanged?.();
+    else { onChanged?.(); void notifyRequest(request.id, "status"); }
   }
 
   return (

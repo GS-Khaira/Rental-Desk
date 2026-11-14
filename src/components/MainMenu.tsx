@@ -11,12 +11,14 @@ export interface MenuAction { label: string; hint: string; run: () => void }
  * The header's menu button and the panel it opens: pages, exports and sign out.
  * The button shows the current page's name, so people always know where they are.
  */
-export function MainMenu({ pages, current, exports, user, onSignOut }: {
+export function MainMenu({ pages, current, exports, user, onSignOut, extra }: {
   pages: MenuPage[];
   current: string;
   exports: MenuAction[];
   user: { name: string; email: string; role: Role | null };
   onSignOut: () => void;
+  /** Shown under the user's name, e.g. the request email switch. */
+  extra?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [exportsOpen, setExportsOpen] = useState(false);
@@ -75,6 +77,7 @@ export function MainMenu({ pages, current, exports, user, onSignOut }: {
               </div>
               <button type="button" className="btn small signout" onClick={() => { close(false); onSignOut(); }}>Sign out</button>
             </div>
+            {extra && <div className="menuextra">{extra}</div>}
 
             <div className="menusec" role="group" aria-label="Pages">
               <div className="label">Go to</div>

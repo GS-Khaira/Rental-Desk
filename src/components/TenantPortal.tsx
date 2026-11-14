@@ -7,6 +7,8 @@ import { REQUEST_CATEGORIES } from "@/lib/roles";
 import { fmtDate, money } from "@/lib/format";
 import type { TenantHome, TenantRequest } from "@/lib/types";
 import { useOpenForm } from "./FormModal";
+import { EmailSwitch } from "./EmailSwitch";
+import { notifyRequest } from "@/lib/notify";
 import { RequestStatusPill, RequestThread, when } from "./Requests";
 import { Empty, KV } from "./ui";
 
@@ -61,6 +63,7 @@ export function TenantPortal({ header }: { header: React.ReactNode }) {
       s.toast("Request sent");
       load();
       setOpenId(data as string);
+      void notifyRequest(data as string, "message"); // email their manager
     },
   });
 
@@ -112,7 +115,10 @@ export function TenantPortal({ header }: { header: React.ReactNode }) {
 
         {hasHome && (
           <section className="panel" style={{ marginTop: 20 }}>
-            <h2>Your requests</h2>
+            <div className="row between">
+              <h2>Your requests</h2>
+              <EmailSwitch label="Email me about replies and updates" />
+            </div>
             {requests.length ? (
               <div className="rows" style={{ marginTop: 10 }}>
                 {requests.map((r) => (

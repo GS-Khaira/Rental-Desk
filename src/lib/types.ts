@@ -111,6 +111,8 @@ export interface Profile {
   renter_id: string | null;
   active: boolean;
   must_change_password: boolean;
+  /** "Email me about requests" (migration 0007). Missing until that update is run. */
+  notify_email?: boolean;
   created_at?: string;
 }
 
