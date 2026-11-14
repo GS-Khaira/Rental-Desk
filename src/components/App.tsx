@@ -198,7 +198,7 @@ function Login() {
         <label className="fld"><span>Email</span><input id="login-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label className="fld"><span>Password</span><input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
         {err && <div className="err">{err}</div>}
-        {sent && <div className="hint">Check your email for a link to set a new password.</div>}
+        {sent && <div className="hint">If an account exists for this email, we&apos;ve sent a link to set a new password. Check your inbox and spam folder.</div>}
         <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: "center" }}>{busy ? "Signing in…" : "Sign in"}</button>
         <button className="linkish small" type="button" onClick={reset}>Forgot password</button>
       </form>
