@@ -15,7 +15,7 @@ import { UsersView } from "./UsersView";
 import { ROLE_INFO } from "@/lib/roles";
 import { MainMenu, type MenuPage } from "./MainMenu";
 import { EmailSwitch } from "./EmailSwitch";
-import { EmailCheckButton } from "./EmailCheck";
+import { EmailCheckDialog } from "./EmailCheck";
 import { PropertyExport } from "./PropertyExport";
 import { rentersCsv, unitsCsv } from "@/lib/exports";
 import { downloadText } from "@/lib/download";
@@ -233,6 +233,7 @@ function Desk() {
   const a = useActions();
   const [view, setView] = useState<View>("home");
   const [adding, setAdding] = useState(false);
+  const [emailCheck, setEmailCheck] = useState(false);
   const [exportingProperty, setExportingProperty] = useState(false);
   const views = viewsFor(s.isAdmin);
   const openRequests = s.requests.filter((r) => r.status === "Open" && (!s.isAdmin || s.scope === "all" || r.user_id === s.scope)).length;
@@ -240,6 +241,13 @@ function Desk() {
   useEffect(() => {
     const read = () => {
       const h = window.location.hash.slice(1) as View;
+      // Hidden admin tool: …/#email-check opens the email check (not shown anywhere in the menu).
+      if ((h as string) === "email-check") {
+        if (s.isAdmin) setEmailCheck(true);
+        window.history.replaceState(null, "", window.location.pathname + "#home");
+        setView("home");
+        return;
+      }
       setView(viewsFor(s.isAdmin).includes(h) ? h : "home");
       s.setDetail(null);
       window.scrollTo(0, 0);
@@ -286,7 +294,7 @@ function Desk() {
             <button className="btn primary addbar" type="button" onClick={() => setAdding(true)}>+ Add</button>
             <MainMenu pages={pages} current={view} exports={exports} onSignOut={() => supabase().auth.signOut()}
               user={{ name: s.profile?.full_name ?? "", email: s.session?.user.email ?? "", role: s.role }}
-              extra={<><EmailSwitch label="Email me about tenant requests" />{s.isAdmin && s.rolesReady && <EmailCheckButton />}</>} />
+              extra={<EmailSwitch label="Email me about tenant requests" />} />
           </div>
         </div>
         {s.isAdmin && s.rolesReady && <ScopeBar />}
@@ -327,6 +335,7 @@ function Desk() {
         </>
       )}
       {exportingProperty && <PropertyExport onClose={() => setExportingProperty(false)} />}
+      {emailCheck && <EmailCheckDialog onClose={() => setEmailCheck(false)} />}
       <DetailSheet />
       {s.toastMsg && <div className="toast" role="status">{s.toastMsg}</div>}
     </>
