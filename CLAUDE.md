@@ -17,8 +17,12 @@ Keep it up to date: when a decision changes or a step is finished, edit this fil
   2. Commit and push the branch. Vercel builds a preview of it automatically.
   3. Give the owner the **preview link** for that branch (plus screenshots when useful), and the GitHub branch link.
   4. Merge into `main` **only after the owner approves**. Never push code changes straight to `main`.
-  - Vercel's branch preview address has the pattern `https://rental-desk-git-<branch>-<vercel-team>.vercel.app`
-    (slashes in the branch name become `-`). The `<vercel-team>` part isn't known yet; ask the owner for one preview link to learn it.
+  - Vercel team is **`gagandeep-team`**. Branch preview address: `https://rental-desk-git-<branch>-gagandeep-team.vercel.app`
+    (slashes in the branch name become `-`; Vercel may shorten very long names). Each deployment also has its own
+    address like `https://rental-desk-<id>-gagandeep-team.vercel.app`.
+  - **Possible duplicate Vercel projects (2026-11-15):** `rental-desk-urhh.vercel.app` lacked the new settings (Users notice, no emails)
+    while the project with all settings has production address `rental-desk-murex.vercel.app`. Likely two projects deploy the same repo;
+    owner asked to check and keep one. Update this note when resolved.
   - Documentation-only changes (`(docs): …`, e.g. this file) may go straight to `main`.
 
 ## Commits (owner's rules)
