@@ -1,7 +1,16 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+/**
+ * The project address as pasted into the hosting settings, tidied up: spaces, a trailing "/",
+ * or a copied "/rest/v1" path would otherwise make every request fail with "Invalid path".
+ */
+export function cleanSupabaseUrl(raw: string | undefined): string | undefined {
+  const u = raw?.trim().replace(/\/+$/, "").replace(/\/(rest|auth|storage)\/v1$/i, "");
+  return u || undefined;
+}
+
+const url = cleanSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
 
 export const supabaseConfigured = Boolean(url && key);
 

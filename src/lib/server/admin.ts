@@ -2,6 +2,7 @@
 // Uses SUPABASE_SECRET_KEY, which bypasses Row Level Security. It must only ever
 // be read here, on the server — never in browser code, and never prefixed NEXT_PUBLIC_.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { cleanSupabaseUrl } from "@/lib/supabase";
 import type { AdminUser, Profile, Role } from "@/lib/types";
 
 export class HttpError extends Error {
@@ -9,8 +10,8 @@ export class HttpError extends Error {
 }
 
 export function adminClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const secret = process.env.SUPABASE_SECRET_KEY;
+  const url = cleanSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const secret = process.env.SUPABASE_SECRET_KEY?.trim();
   if (!url || !secret) {
     throw new HttpError(500, "User management isn't set up yet: add SUPABASE_SECRET_KEY to the hosting environment variables, then redeploy.");
   }
